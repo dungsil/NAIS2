@@ -449,6 +449,10 @@
             "title": "스트리밍 생성",
             "description": "이미지 생성 중 실시간 진행 상황을 표시합니다"
         },
+        "version": {
+            "title": "버전",
+            "checkUpdate": "업데이트 확인"
+        },
         "saveBtn": "저장",
         "saved": "설정이 저장되었습니다.",
         "saving": "저장 중...",

@@ -421,6 +421,10 @@
             "title": "Streaming Generation",
             "description": "Show real-time progress during image generation"
         },
+        "version": {
+            "title": "Version",
+            "checkUpdate": "Check for Updates"
+        },
         "saveBtn": "Save",
         "saved": "Settings saved successfully.",
         "saving": "Saving...",
