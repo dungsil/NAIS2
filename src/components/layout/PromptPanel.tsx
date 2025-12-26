@@ -51,6 +51,7 @@ const SAMPLERS = [
     'k_euler_ancestral',
     'k_dpmpp_2s_ancestral',
     'k_dpmpp_2m',
+    'k_dpmpp_2m_sde',
     'k_dpmpp_sde',
     'ddim',
 ]
@@ -346,7 +347,7 @@ export function PromptPanel() {
                                     onValueChange={([v]) => setCfgScale(v)}
                                     min={1}
                                     max={10}
-                                    step={0.5}
+                                    step={0.1}
                                     className="w-full"
                                 />
                             </div>
@@ -362,7 +363,7 @@ export function PromptPanel() {
                                     onValueChange={([v]) => setCfgRescale(v)}
                                     min={0}
                                     max={1}
-                                    step={0.05}
+                                    step={0.01}
                                     className="w-full"
                                 />
                             </div>
@@ -542,7 +543,7 @@ export function PromptPanel() {
                         value={batchCount}
                         onChange={setBatchCount}
                         min={1}
-                        max={10}
+                        max={9999}
                         fontSize={16}
                     />
                 </div>

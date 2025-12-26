@@ -1,5 +1,5 @@
 import { motion, useSpring, useTransform } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Minus, Plus } from 'lucide-react'
 
 import './counter.css'
@@ -47,15 +47,41 @@ function Digit({ place, value, height }: { place: number; value: number; height:
     )
 }
 
+// Calculate required places based on value
+function getPlaces(value: number): number[] {
+    if (value >= 1000) return [1000, 100, 10, 1]
+    if (value >= 100) return [100, 10, 1]
+    if (value >= 10) return [10, 1]
+    return [1]
+}
+
 export default function Counter({
     value,
     onChange,
     min = 1,
-    max = 99,
+    max = 9999,
     fontSize = 20,
     className = '',
 }: CounterProps) {
     const height = fontSize + 4
+    const [isEditing, setIsEditing] = useState(false)
+    const [inputValue, setInputValue] = useState(String(value))
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    // Sync input value when value changes externally
+    useEffect(() => {
+        if (!isEditing) {
+            setInputValue(String(value))
+        }
+    }, [value, isEditing])
+
+    // Focus input when entering edit mode
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus()
+            inputRef.current.select()
+        }
+    }, [isEditing])
 
     const handleDecrement = () => {
         if (value > min) {
@@ -69,7 +95,25 @@ export default function Counter({
         }
     }
 
-    const places = value >= 10 ? [10, 1] : [1]
+    const handleConfirm = () => {
+        const parsed = parseInt(inputValue, 10)
+        if (!isNaN(parsed)) {
+            const clamped = Math.max(min, Math.min(max, parsed))
+            onChange(clamped)
+        }
+        setIsEditing(false)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleConfirm()
+        } else if (e.key === 'Escape') {
+            setInputValue(String(value))
+            setIsEditing(false)
+        }
+    }
+
+    const places = getPlaces(value)
 
     return (
         <div className={`counter-container ${className}`}>
@@ -81,11 +125,31 @@ export default function Counter({
             >
                 <Minus className="w-3 h-3" />
             </button>
-            <div className="counter-display" style={{ fontSize, height }}>
-                {places.map((place) => (
-                    <Digit key={place} place={place} value={value} height={height} />
-                ))}
-            </div>
+            {isEditing ? (
+                <input
+                    ref={inputRef}
+                    type="number"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onBlur={handleConfirm}
+                    onKeyDown={handleKeyDown}
+                    className="counter-input"
+                    style={{ fontSize, height, width: `${Math.max(2, inputValue.length + 1)}ch` }}
+                    min={min}
+                    max={max}
+                />
+            ) : (
+                <div
+                    className="counter-display"
+                    style={{ fontSize, height }}
+                    onClick={() => setIsEditing(true)}
+                    title="Click to edit"
+                >
+                    {places.map((place) => (
+                        <Digit key={place} place={place} value={value} height={height} />
+                    ))}
+                </div>
+            )}
             <button
                 type="button"
                 onClick={handleIncrement}

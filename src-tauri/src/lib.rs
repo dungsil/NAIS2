@@ -444,6 +444,18 @@ async fn is_browser_open(app: AppHandle) -> bool {
 }
 
 #[tauri::command]
+async fn zoom_embedded_browser(app: AppHandle, zoom_level: f64) -> Result<(), String> {
+    if let Some(webview) = app.get_webview("embedded_browser") {
+        // Use CSS zoom property via JavaScript
+        let js = format!("document.body.style.zoom = '{}';", zoom_level);
+        webview
+            .eval(&js)
+            .map_err(|e| format!("Zoom failed: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn check_tagger_binary() -> bool {
     // Check if tagger-server executable exists in the current working directory or adjacent to the executable
     let mut path = std::env::current_exe().unwrap_or_default();
@@ -569,6 +581,7 @@ pub fn run() {
             show_embedded_browser,
             hide_embedded_browser,
             is_browser_open,
+            zoom_embedded_browser,
             start_tagger,
             check_tagger_binary
         ])

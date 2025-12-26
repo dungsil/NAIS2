@@ -284,7 +284,7 @@ export function CharacterPromptDialog() {
                                 </h3>
                                 <Button size="sm" onClick={() => setIsCreatorOpen(true)} className="h-8 text-xs">
                                     <Plus className="w-3.5 h-3.5 mr-1" />
-                                    {t('common.add', '새 캐릭터')}
+                                    {t('characterPromptDialog.addCharacter', '새 캐릭터')}
                                 </Button>
                             </div>
                             <div className="relative">

@@ -14,6 +14,8 @@ import {
     RefreshCw,
     Plus,
     Edit,
+    ZoomIn,
+    ZoomOut,
 } from 'lucide-react'
 
 interface QuickLink {
@@ -44,6 +46,28 @@ export default function WebView() {
     const browserAreaRef = useRef<HTMLDivElement>(null)
     const rafRef = useRef<number | null>(null)
     const storeRef = useRef<Store | null>(null)
+    const [zoomLevel, setZoomLevel] = useState(1.0)
+
+    // Zoom function for buttons
+    const handleZoom = useCallback(async (delta: number) => {
+        if (!isBrowserOpen) return
+        const newZoom = Math.max(0.25, Math.min(3.0, zoomLevel + delta))
+        setZoomLevel(newZoom)
+        try {
+            await invoke('zoom_embedded_browser', { zoomLevel: newZoom })
+        } catch (error) {
+            console.error('Zoom failed:', error)
+        }
+    }, [isBrowserOpen, zoomLevel])
+
+    const handleZoomReset = useCallback(async () => {
+        setZoomLevel(1.0)
+        try {
+            await invoke('zoom_embedded_browser', { zoomLevel: 1.0 })
+        } catch (error) {
+            console.error('Zoom reset failed:', error)
+        }
+    }, [])
 
     // Hide WebView when dialog opens (z-index fix)
     useEffect(() => {
@@ -380,15 +404,47 @@ export default function WebView() {
                 </Button>
 
                 {isBrowserOpen && (
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        className="text-sm rounded-xl ml-auto"
-                        onClick={closeBrowser}
-                    >
-                        <X className="h-3 w-3 mr-1.5" />
-                        {t('web.close')}
-                    </Button>
+                    <>
+                        {/* Zoom controls */}
+                        <div className="flex items-center gap-1 ml-auto">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-lg"
+                                onClick={() => handleZoom(-0.1)}
+                                title="Zoom Out (Ctrl+-)"
+                            >
+                                <ZoomOut className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs rounded-lg px-2 h-7 min-w-[50px]"
+                                onClick={handleZoomReset}
+                                title="Reset Zoom (Ctrl+0)"
+                            >
+                                {Math.round(zoomLevel * 100)}%
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-lg"
+                                onClick={() => handleZoom(0.1)}
+                                title="Zoom In (Ctrl++)"
+                            >
+                                <ZoomIn className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="text-sm rounded-xl"
+                            onClick={closeBrowser}
+                        >
+                            <X className="h-3 w-3 mr-1.5" />
+                            {t('web.close')}
+                        </Button>
+                    </>
                 )}
             </div>
 

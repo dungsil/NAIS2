@@ -153,6 +153,7 @@
         "description": "캐릭터 프리셋을 선택하고 배치하세요.",
         "list": "라이브러리",
         "add": "추가",
+        "addCharacter": "새 캐릭터",
         "character": "캐릭터",
         "noCharacters": "저장된 캐릭터가 없습니다.",
         "promptPlaceholder": "캐릭터 프롬프트...",

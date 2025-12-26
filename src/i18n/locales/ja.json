@@ -138,6 +138,7 @@
         "description": "キャラクタープリセットを選択して配置してください。",
         "list": "ライブラリ",
         "add": "追加",
+        "addCharacter": "新規キャラクター",
         "character": "キャラクター",
         "noCharacters": "保存されたキャラクターがありません。",
         "promptPlaceholder": "キャラクタープロンプト...",

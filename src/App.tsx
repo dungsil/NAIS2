@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThreeColumnLayout } from '@/components/layout/ThreeColumnLayout'
 import { Toaster } from '@/components/ui/toaster'
@@ -13,6 +14,24 @@ import ToolsMode from '@/pages/ToolsMode'
 function App() {
     // Scene generation hook at App level - persists across page navigation
     useSceneGeneration()
+
+    // Disable right-click globally except for allowed elements
+    useEffect(() => {
+        const handleContextMenu = (e: MouseEvent) => {
+            // Check if the target or any parent has data-allow-context-menu attribute
+            let element = e.target as HTMLElement | null
+            while (element) {
+                if (element.hasAttribute('data-allow-context-menu')) {
+                    return // Allow context menu
+                }
+                element = element.parentElement
+            }
+            e.preventDefault() // Block context menu
+        }
+
+        document.addEventListener('contextmenu', handleContextMenu)
+        return () => document.removeEventListener('contextmenu', handleContextMenu)
+    }, [])
 
     return (
         <BrowserRouter>

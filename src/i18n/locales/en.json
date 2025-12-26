@@ -153,6 +153,7 @@
         "description": "Select and position character presets.",
         "list": "Library",
         "add": "Add",
+        "addCharacter": "New Character",
         "character": "Character",
         "noCharacters": "No presets found.",
         "promptPlaceholder": "Character prompt...",

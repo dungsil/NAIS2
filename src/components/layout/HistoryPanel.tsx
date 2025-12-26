@@ -70,10 +70,45 @@ const HistoryImageItem = memo(function HistoryImageItem({
                             draggable="true"
                             onDragStart={(e) => {
                                 e.dataTransfer.setData('text/plain', image.name);
+                                e.dataTransfer.effectAllowed = 'copy';
                                 useLibraryStore.getState().setDraggedSource({
                                     name: image.name,
                                     path: image.path
                                 });
+
+                                // Create custom drag preview with rounded corners using DOM element
+                                const dragPreview = document.createElement('div');
+                                dragPreview.style.cssText = `
+                                    width: 80px;
+                                    height: 80px;
+                                    border-radius: 12px;
+                                    overflow: hidden;
+                                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                                    border: 2px solid rgba(255,255,255,0.3);
+                                    position: fixed;
+                                    top: -200px;
+                                    left: -200px;
+                                    z-index: 9999;
+                                    pointer-events: none;
+                                `;
+
+                                const previewImg = document.createElement('img');
+                                previewImg.src = thumbnail;
+                                previewImg.style.cssText = `
+                                    width: 100%;
+                                    height: 100%;
+                                    object-fit: cover;
+                                `;
+
+                                dragPreview.appendChild(previewImg);
+                                document.body.appendChild(dragPreview);
+
+                                e.dataTransfer.setDragImage(dragPreview, 40, 40);
+
+                                // Clean up after a short delay
+                                setTimeout(() => {
+                                    document.body.removeChild(dragPreview);
+                                }, 0);
                             }}
                             onDragEnd={() => {
                                 useLibraryStore.getState().setDraggedSource(null);

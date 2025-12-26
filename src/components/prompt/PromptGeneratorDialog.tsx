@@ -257,7 +257,7 @@ export function PromptGeneratorDialog({ open, onOpenChange, onApply }: PromptGen
                                 {t('promptGenerator.rightClickHint', '우클릭으로 태그 제거')}
                             </p>
 
-                            <ScrollArea className="h-[200px] border rounded-lg p-3">
+                            <ScrollArea className="h-[200px] border rounded-lg p-3" data-allow-context-menu>
                                 <div className="flex flex-wrap gap-2">
                                     {results.map((result, index) => (
                                         <div
