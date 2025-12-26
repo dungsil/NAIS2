@@ -114,6 +114,7 @@ export default function MainMode() {
                 scheduler: metadata.scheduler || 'native',
                 smea: metadata.smea ?? true,
                 smea_dyn: metadata.smeaDyn ?? false,
+                variety: metadata.variety ?? false,
                 seed: newSeed,
             })
 

@@ -40,6 +40,7 @@ export interface GenerationParams {
     scheduler: string
     smea: boolean
     smea_dyn: boolean
+    variety: boolean
     seed: number
 
     // Character Reference
@@ -461,8 +462,9 @@ export async function generateImage(
             // Dynamic Thresholding
             dynamic_thresholding: false,
 
-            // Skip CFG settings
-            skip_cfg_above_sigma: null,
+            // Skip CFG settings (Variety+)
+            // 19 is a common default for variety boost when enabled.
+            skip_cfg_above_sigma: params.variety ? 19 : null,
 
             // V4 specific
             add_original_image: true,

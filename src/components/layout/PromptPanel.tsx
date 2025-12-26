@@ -90,6 +90,7 @@ export function PromptPanel() {
     const scheduler = useGenerationStore(state => state.scheduler)
     const smea = useGenerationStore(state => state.smea)
     const smeaDyn = useGenerationStore(state => state.smeaDyn)
+    const variety = useGenerationStore(state => state.variety)
     const batchCount = useGenerationStore(state => state.batchCount)
     const currentBatch = useGenerationStore(state => state.currentBatch)
     const generatingMode = useGenerationStore(state => state.generatingMode)
@@ -110,6 +111,7 @@ export function PromptPanel() {
     const setScheduler = useGenerationStore(state => state.setScheduler)
     const setSmea = useGenerationStore(state => state.setSmea)
     const setSmeaDyn = useGenerationStore(state => state.setSmeaDyn)
+    const setVariety = useGenerationStore(state => state.setVariety)
     const setBatchCount = useGenerationStore(state => state.setBatchCount)
     const generate = useGenerationStore(state => state.generate)
     const cancelGeneration = useGenerationStore(state => state.cancelGeneration)
@@ -423,6 +425,20 @@ export function PromptPanel() {
                                     checked={smeaDyn}
                                     disabled={!smea}
                                     onChange={(e) => setSmeaDyn(e.target.checked)}
+                                />
+                            </div>
+
+                            {/* Variety+ */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col gap-1">
+                                    <Label className="cursor-pointer" onClick={() => setVariety(!variety)}>
+                                        {t('parameters.variety', 'Variety+')}
+                                    </Label>
+                                    <span className="text-xs text-muted-foreground">Increases generation variety</span>
+                                </div>
+                                <Switch
+                                    checked={variety}
+                                    onChange={(e) => setVariety(e.target.checked)}
                                 />
                             </div>
 

@@ -26,7 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { mkdir, exists, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { pictureDir, join } from '@tauri-apps/api/path'
 import { toast } from '@/components/ui/use-toast'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, X, Grid3x3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const dropAnimation = {
@@ -48,7 +48,7 @@ import { readFile } from '@tauri-apps/plugin-fs'
 
 export default function Library() {
     const { t } = useTranslation()
-    const { items, addItem, setItems, updateItem } = useLibraryStore()
+    const { items, addItem, setItems, updateItem, gridColumns, setGridColumns } = useLibraryStore()
     const [activeId, setActiveId] = useState<string | null>(null)
     const [isDraggingFile, setIsDraggingFile] = useState(false)
 
@@ -288,6 +288,11 @@ export default function Library() {
         }
     }
 
+    const handleToggleGrid = () => {
+        const next = gridColumns >= 5 ? 2 : gridColumns + 1
+        setGridColumns(next)
+    }
+
     return (
         <div
             className="h-full flex flex-col relative"
@@ -309,7 +314,13 @@ export default function Library() {
             {/* Header */}
             <div className="h-14 border-b flex items-center px-6 justify-between bg-background/50 backdrop-blur-sm z-10 w-full box-border">
                 <h2 className="text-lg font-semibold tracking-tight">{t('library.title', '라이브러리')}</h2>
-                <span className="text-sm text-muted-foreground">{items.length} {t('library.items', 'items')}</span>
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="sm" className="h-9 text-muted-foreground hover:text-foreground hover:bg-white/10" onClick={handleToggleGrid} title={t('scene.gridColumns', { count: gridColumns })}>
+                        <Grid3x3 className="h-4 w-4 mr-1.5" />
+                        <span className="font-medium text-sm">{gridColumns}</span>
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{items.length} {t('library.items', 'items')}</span>
+                </div>
             </div>
 
             {/* Content */}
@@ -331,7 +342,7 @@ export default function Library() {
                     >
                         <div
                             className="grid gap-6 pb-10"
-                            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}
+                            style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
                         >
                             {items.map((item) => (
                                 <SortableLibraryItem

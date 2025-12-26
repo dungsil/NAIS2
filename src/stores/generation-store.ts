@@ -55,6 +55,7 @@ interface GenerationState {
     scheduler: string
     smea: boolean
     smeaDyn: boolean
+    variety: boolean
 
     seed: number
     seedLocked: boolean
@@ -103,6 +104,7 @@ interface GenerationState {
     setScheduler: (v: string) => void
     setSmea: (v: boolean) => void
     setSmeaDyn: (v: boolean) => void
+    setVariety: (v: boolean) => void
 
     setSeed: (seed: number) => void
     setSeedLocked: (locked: boolean) => void
@@ -148,6 +150,7 @@ export const useGenerationStore = create<GenerationState>()(
             scheduler: 'karras',
             smea: true,
             smeaDyn: true,
+            variety: false,
 
             seed: Math.floor(Math.random() * 4294967295),
             seedLocked: false,
@@ -189,6 +192,7 @@ export const useGenerationStore = create<GenerationState>()(
             setScheduler: (scheduler) => set({ scheduler }),
             setSmea: (smea) => set({ smea }),
             setSmeaDyn: (smeaDyn) => set({ smeaDyn }),
+            setVariety: (variety) => set({ variety }),
 
             setSeed: (seed) => set({ seed }),
             setSeedLocked: (locked) => set({ seedLocked: locked }),
@@ -219,7 +223,7 @@ export const useGenerationStore = create<GenerationState>()(
             generate: async () => {
                 const {
                     basePrompt, additionalPrompt, detailPrompt, negativePrompt, inpaintingPrompt,
-                    model, steps, cfgScale, cfgRescale, sampler, scheduler, smea, smeaDyn,
+                    model, steps, cfgScale, cfgRescale, sampler, scheduler, smea, smeaDyn, variety,
                     selectedResolution, seed, batchCount, lastGenerationTime,
                     sourceImage, strength, noise, mask
                 } = get()
@@ -328,6 +332,7 @@ export const useGenerationStore = create<GenerationState>()(
                             scheduler,
                             smea,
                             smea_dyn: smeaDyn,
+                            variety,
                             seed: currentSeed,
 
                             // I2I & Inpainting
@@ -526,6 +531,7 @@ export const useGenerationStore = create<GenerationState>()(
                 scheduler: state.scheduler,
                 smea: state.smea,
                 smeaDyn: state.smeaDyn,
+                variety: state.variety,
                 // Seed - only save if locked
                 ...(state.seedLocked ? { seed: state.seed } : {}),
                 seedLocked: state.seedLocked,

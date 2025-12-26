@@ -148,6 +148,7 @@ export function useSceneGeneration() {
                     scheduler: genState.scheduler,
                     smea: genState.smea,
                     smea_dyn: genState.smeaDyn,
+                    variety: genState.variety ?? false,
                     seed: finalSeed,
 
                     width: scene.width || genState.selectedResolution.width,

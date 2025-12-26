@@ -13,6 +13,9 @@ export interface LibraryItem {
 interface LibraryState {
     items: LibraryItem[]
     draggedSource: { name: string, path: string } | null
+    gridColumns: number
+
+    setGridColumns: (columns: number) => void
 
     addItem: (item: LibraryItem) => void
     removeItem: (id: string) => void
@@ -26,6 +29,9 @@ export const useLibraryStore = create<LibraryState>()(
         (set) => ({
             items: [],
             draggedSource: null,
+            gridColumns: 4,
+
+            setGridColumns: (columns) => set({ gridColumns: columns }),
 
             addItem: (item) => set((state) => ({
                 items: [item, ...state.items]
@@ -47,7 +53,7 @@ export const useLibraryStore = create<LibraryState>()(
         }),
         {
             name: 'nais-library-storage',
-            partialize: (state) => ({ items: state.items }), // Don't persist draggedSource
+            partialize: (state) => ({ items: state.items, gridColumns: state.gridColumns }), // Don't persist draggedSource
         }
     )
 )

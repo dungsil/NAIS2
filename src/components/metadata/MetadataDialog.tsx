@@ -168,6 +168,7 @@ export function MetadataDialog({ open, onOpenChange, initialImage }: MetadataDia
             if (metadata.scheduler) genStore.setScheduler(metadata.scheduler)
             if (typeof metadata.smea === 'boolean') genStore.setSmea(metadata.smea)
             if (typeof metadata.smeaDyn === 'boolean') genStore.setSmeaDyn(metadata.smeaDyn)
+            if (typeof metadata.variety === 'boolean') genStore.setVariety(metadata.variety)
         }
 
         if (loadOptions.resolution && metadata.width && metadata.height) {
@@ -360,7 +361,7 @@ export function MetadataDialog({ open, onOpenChange, initialImage }: MetadataDia
                                                 <span className="text-muted-foreground">Rescale:</span>
                                                 <span className="ml-1 font-medium">{metadata.cfgRescale ?? '-'}</span>
                                             </div>
-                                            <div className="bg-muted/30 rounded-lg p-2 col-span-2">
+                                            <div className="bg-muted/30 rounded-lg p-2">
                                                 <span className="text-muted-foreground">Sampler:</span>
                                                 <span className="ml-1 font-medium">{metadata.sampler || '-'}</span>
                                             </div>
@@ -369,6 +370,12 @@ export function MetadataDialog({ open, onOpenChange, initialImage }: MetadataDia
                                                 <span className="ml-1 font-medium">
                                                     {metadata.smea ? 'ON' : 'OFF'}
                                                     {metadata.smeaDyn ? ' (DYN)' : ''}
+                                                </span>
+                                            </div>
+                                            <div className="bg-muted/30 rounded-lg p-2">
+                                                <span className="text-muted-foreground">Variety:</span>
+                                                <span className="ml-1 font-medium">
+                                                    {metadata.variety ? '+19' : 'OFF'}
                                                 </span>
                                             </div>
                                         </div>

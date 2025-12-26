@@ -70,6 +70,7 @@ export interface NAIMetadata {
     // SMEA
     smea?: boolean  // "sm" in NAI
     smeaDyn?: boolean  // "sm_dyn" in NAI
+    variety?: boolean // Derived from "skip_cfg_above_sigma"
 
     // Resolution
     width?: number
@@ -430,6 +431,7 @@ function convertNAIFormat(data: Record<string, unknown>): NAIMetadata {
     // SMEA
     if (typeof data.sm === 'boolean') metadata.smea = data.sm
     if (typeof data.sm_dyn === 'boolean') metadata.smeaDyn = data.sm_dyn
+    if (data.skip_cfg_above_sigma !== undefined && data.skip_cfg_above_sigma !== null) metadata.variety = true
 
     // Resolution
     if (data.width) metadata.width = Number(data.width)
