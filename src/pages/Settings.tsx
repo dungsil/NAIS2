@@ -27,6 +27,9 @@ import {
     Type,
     Zap,
     RotateCcw,
+    Info,
+    RefreshCw,
+    Download,
 } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
@@ -37,6 +40,9 @@ import { toast } from '@/components/ui/use-toast'
 import NovelAILogo from '@/assets/novelai_logo.svg'
 import GeminiIcon from '@/assets/gemini-color.svg'
 import { open } from '@tauri-apps/plugin-dialog'
+import { check } from '@tauri-apps/plugin-updater'
+import { relaunch } from '@tauri-apps/plugin-process'
+import { getVersion } from '@tauri-apps/api/app'
 
 const LANGUAGES = [
     { code: 'ko', name: '한국어' },
@@ -67,6 +73,12 @@ export default function Settings() {
     )
     const [localSavePath, setLocalSavePath] = useState(savePath)
     const [isAbsolutePath, setIsAbsolutePath] = useState(useAbsolutePath)
+    const [appVersion, setAppVersion] = useState('')
+    const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+
+    useEffect(() => {
+        getVersion().then(setAppVersion).catch(() => setAppVersion('dev'))
+    }, [])
 
     useEffect(() => {
         if (token) {
@@ -191,6 +203,63 @@ export default function Settings() {
                                         checked={useStreaming}
                                         onChange={(e) => setUseStreaming(e.target.checked)}
                                     />
+                                </div>
+
+                                {/* Version Info */}
+                                <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                                    <div className="space-y-0.5">
+                                        <label className="text-sm font-medium flex items-center gap-2">
+                                            <Info className="h-4 w-4 text-blue-500" />
+                                            {t('settingsPage.version.title', 'Version')}
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            NAIS2 v{appVersion}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            setIsCheckingUpdate(true)
+                                            try {
+                                                const update = await check()
+                                                if (update) {
+                                                    toast({
+                                                        title: t('update.available', '업데이트 사용 가능'),
+                                                        description: t('update.version', { version: update.version }),
+                                                        action: (
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={async () => {
+                                                                    toast({ title: t('update.downloading', '다운로드 중...') })
+                                                                    await update.downloadAndInstall()
+                                                                    await relaunch()
+                                                                }}
+                                                            >
+                                                                <Download className="h-4 w-4" />
+                                                            </Button>
+                                                        ),
+                                                    })
+                                                } else {
+                                                    toast({ title: t('update.upToDate', '최신 버전입니다'), variant: 'success' })
+                                                }
+                                            } catch (e) {
+                                                toast({ title: t('update.checkFailed', '업데이트 확인 실패'), variant: 'destructive' })
+                                            } finally {
+                                                setIsCheckingUpdate(false)
+                                            }
+                                        }}
+                                        disabled={isCheckingUpdate}
+                                    >
+                                        {isCheckingUpdate ? (
+                                            <RefreshCw className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <RefreshCw className="h-4 w-4 mr-2" />
+                                                {t('settingsPage.version.checkUpdate', 'Check for Updates')}
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
                         </section>

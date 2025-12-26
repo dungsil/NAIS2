@@ -10,7 +10,9 @@
         "pleaseWait": "しばらくお待ちください",
         "installed": "インストール完了",
         "restarting": "アプリを再起動します",
-        "failed": "アップデート失敗"
+        "failed": "アップデート失敗",
+        "upToDate": "最新バージョンです",
+        "checkFailed": "アップデート確認失敗"
     },
     "toast": {
         "generationCancelled": {

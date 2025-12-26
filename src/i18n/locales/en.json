@@ -10,7 +10,9 @@
         "pleaseWait": "Please wait",
         "installed": "Installation Complete",
         "restarting": "Restarting app",
-        "failed": "Update Failed"
+        "failed": "Update Failed",
+        "upToDate": "You're up to date",
+        "checkFailed": "Update check failed"
     },
     "common": {
         "save": "Save",
