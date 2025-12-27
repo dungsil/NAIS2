@@ -21,11 +21,10 @@ jobs:
             tagger_target: 'x86_64-pc-windows-msvc'
             python_arch: 'x64'
 
-          - platform: 'macos-14'
+          - platform: 'macos-12'
             args: '--target x86_64-apple-darwin'
             target: 'x86_64-apple-darwin'
             tagger_target: 'x86_64-apple-darwin'
-            python_arch: 'x64'
 
           - platform: 'macos-14'
             args: '--target aarch64-apple-darwin'
