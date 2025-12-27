@@ -132,7 +132,7 @@ const HistoryImageItem = memo(function HistoryImageItem({
                                 `;
 
                                 const previewImg = document.createElement('img');
-                                previewImg.src = thumbnail;
+                                previewImg.src = localThumbnail || '';
                                 previewImg.style.cssText = `
                                     width: 100%;
                                     height: 100%;
