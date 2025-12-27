@@ -313,9 +313,8 @@ export default function SceneMode() {
                 /* Edit Mode Toolbar */
                 <div className="flex items-center justify-between bg-primary/10 border border-primary/30 rounded-2xl p-3">
                     <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="sm" className="h-9 px-3 text-primary hover:bg-primary/20" onClick={() => { setEditMode(false); clearSelection() }}>
-                            <X className="mr-2 h-4 w-4" />
-                            {t('scene.exitEditMode', '편집 종료')}
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/20" onClick={() => { setEditMode(false); clearSelection() }} title={t('scene.exitEditMode', '편집 종료')}>
+                            <X className="h-4 w-4" />
                         </Button>
                         <div className="h-6 w-px bg-primary/20" />
                         <span className="text-sm font-medium text-primary">
@@ -324,14 +323,12 @@ export default function SceneMode() {
                     </div>
                     <div className="flex items-center gap-2">
                         {/* Select All */}
-                        <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={selectAllScenes} disabled={scenes.length === 0}>
-                            <CheckSquare className="mr-2 h-4 w-4" />
-                            {t('scene.selectAll', '전체 선택')}
+                        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={selectAllScenes} disabled={scenes.length === 0} title={t('scene.selectAll', '전체 선택')}>
+                            <CheckSquare className="h-4 w-4" />
                         </Button>
                         {/* Deselect All */}
-                        <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={clearSelection} disabled={selectedSceneIds.length === 0}>
-                            <Square className="mr-2 h-4 w-4" />
-                            {t('scene.deselectAll', '선택 해제')}
+                        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={clearSelection} disabled={selectedSceneIds.length === 0} title={t('scene.deselectAll', '선택 해제')}>
+                            <Square className="h-4 w-4" />
                         </Button>
                         <div className="h-6 w-px bg-border" />
 
@@ -344,9 +341,8 @@ export default function SceneMode() {
                                     disabled={selectedSceneIds.length === 0}
                                 />
                             </div>
-                            <Button variant="secondary" size="sm" className="h-9" onClick={handleApplyResolutionToSelected} disabled={selectedSceneIds.length === 0}>
-                                <Check className="mr-1 h-4 w-4" />
-                                {t('common.change', '변경')}
+                            <Button variant="secondary" size="icon" className="h-9 w-9" onClick={handleApplyResolutionToSelected} disabled={selectedSceneIds.length === 0} title={t('common.change', '변경')}>
+                                <Check className="h-4 w-4" />
                             </Button>
                         </div>
 
@@ -355,9 +351,8 @@ export default function SceneMode() {
                         {/* Move to Preset */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-9" disabled={selectedSceneIds.length === 0 || presets.length < 2}>
-                                    <FolderInput className="mr-2 h-4 w-4" />
-                                    {t('scene.moveToPreset', '프리셋으로 이동')}
+                                <Button variant="outline" size="icon" className="h-9 w-9" disabled={selectedSceneIds.length === 0 || presets.length < 2} title={t('scene.moveToPreset', '프리셋으로 이동')}>
+                                    <FolderInput className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -371,15 +366,13 @@ export default function SceneMode() {
                         </DropdownMenu>
 
                         {/* Delete Selected */}
-                        <Button variant="destructive" size="sm" className="h-9" onClick={deleteSelectedScenes} disabled={selectedSceneIds.length === 0}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t('scene.deleteSelected', '선택 삭제')}
+                        <Button variant="destructive" size="icon" className="h-9 w-9" onClick={deleteSelectedScenes} disabled={selectedSceneIds.length === 0} title={t('scene.deleteSelected', '선택 삭제')}>
+                            <Trash2 className="h-4 w-4" />
                         </Button>
 
                         {/* Export Selected ZIP */}
-                        <Button variant="outline" size="sm" className="h-9" onClick={handleExportSelectedZip} disabled={selectedSceneIds.length === 0}>
-                            <Download className="mr-2 h-4 w-4" />
-                            {t('scene.exportSelectedZip', '선택 ZIP')}
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleExportSelectedZip} disabled={selectedSceneIds.length === 0} title={t('scene.exportSelectedZip', '선택 ZIP')}>
+                            <Download className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>

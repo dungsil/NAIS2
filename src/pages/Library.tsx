@@ -28,6 +28,7 @@ import { pictureDir, join } from '@tauri-apps/api/path'
 import { toast } from '@/components/ui/use-toast'
 import { ImagePlus, X, Grid3x3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useSettingsStore } from '@/stores/settings-store'
 
 const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
@@ -49,6 +50,7 @@ import { readFile } from '@tauri-apps/plugin-fs'
 export default function Library() {
     const { t } = useTranslation()
     const { items, addItem, setItems, updateItem, gridColumns, setGridColumns } = useLibraryStore()
+    const { libraryPath, useAbsoluteLibraryPath } = useSettingsStore()
     const [activeId, setActiveId] = useState<string | null>(null)
     const [isDraggingFile, setIsDraggingFile] = useState(false)
 
@@ -90,9 +92,19 @@ export default function Library() {
         const initDir = async () => {
             try {
                 // 1. Ensure Dir Exists
-                const existsDir = await exists('NAIS_Library', { baseDir: BaseDirectory.Picture })
-                if (!existsDir) {
-                    await mkdir('NAIS_Library', { baseDir: BaseDirectory.Picture })
+                if (useAbsoluteLibraryPath && libraryPath) {
+                    // Absolute path
+                    const existsDir = await exists(libraryPath)
+                    if (!existsDir) {
+                        await mkdir(libraryPath, { recursive: true })
+                    }
+                } else {
+                    // Relative to Pictures folder
+                    const relPath = libraryPath || 'NAIS_Library'
+                    const existsDir = await exists(relPath, { baseDir: BaseDirectory.Picture })
+                    if (!existsDir) {
+                        await mkdir(relPath, { baseDir: BaseDirectory.Picture })
+                    }
                 }
 
                 // 2. Sync: Remove items that no longer exist on disk
@@ -138,7 +150,7 @@ export default function Library() {
             }
         }
         initDir()
-    }, [setItems])
+    }, [setItems, libraryPath, useAbsoluteLibraryPath])
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string)
@@ -170,11 +182,20 @@ export default function Library() {
 
             try {
                 const picturePath = await pictureDir()
-                const libraryDir = await join(picturePath, 'NAIS_Library')
+                const relPath = libraryPath || 'NAIS_Library'
+                const libraryDir = useAbsoluteLibraryPath && libraryPath
+                    ? libraryPath
+                    : await join(picturePath, relPath)
 
-                // Ensure dir exists again just in case
-                if (!(await exists('NAIS_Library', { baseDir: BaseDirectory.Picture }))) {
-                    await mkdir('NAIS_Library', { baseDir: BaseDirectory.Picture })
+                // Ensure dir exists
+                if (useAbsoluteLibraryPath && libraryPath) {
+                    if (!(await exists(libraryPath))) {
+                        await mkdir(libraryPath, { recursive: true })
+                    }
+                } else {
+                    if (!(await exists(relPath, { baseDir: BaseDirectory.Picture }))) {
+                        await mkdir(relPath, { baseDir: BaseDirectory.Picture })
+                    }
                 }
 
                 let addedCount = 0
@@ -201,7 +222,12 @@ export default function Library() {
                     const newPath = await join(libraryDir, fileName)
 
                     // Write
-                    await writeFile(`NAIS_Library/${fileName}`, uint8Array, { baseDir: BaseDirectory.Picture })
+                    if (useAbsoluteLibraryPath && libraryPath) {
+                        await writeFile(newPath, uint8Array)
+                    } else {
+                        const relPath = libraryPath || 'NAIS_Library'
+                        await writeFile(`${relPath}/${fileName}`, uint8Array, { baseDir: BaseDirectory.Picture })
+                    }
 
                     const newItem: LibraryItem = {
                         id: uuid,

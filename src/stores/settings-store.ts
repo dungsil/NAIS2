@@ -27,6 +27,10 @@ interface SettingsState {
     // Gemini API settings
     geminiApiKey: string
 
+    // Library settings
+    libraryPath: string
+    useAbsoluteLibraryPath: boolean
+
     // Actions
     setSavePath: (path: string, useAbsolute?: boolean) => void
     setAutoSave: (autoSave: boolean) => void
@@ -36,6 +40,7 @@ interface SettingsState {
     setUseStreaming: (useStreaming: boolean) => void
     setGenerationDelay: (delay: number) => void
     setGeminiApiKey: (key: string) => void
+    setLibraryPath: (path: string, useAbsolute?: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -49,6 +54,8 @@ export const useSettingsStore = create<SettingsState>()(
             useStreaming: true, // Default: enabled
             generationDelay: 500, // Default: 500ms delay between batch generations
             geminiApiKey: '', // Default: empty
+            libraryPath: 'NAIS_Library', // Default: relative to Pictures folder
+            useAbsoluteLibraryPath: false, // Default: relative to Pictures folder
 
             setSavePath: (savePath, useAbsolute) => set({
                 savePath,
@@ -70,6 +77,10 @@ export const useSettingsStore = create<SettingsState>()(
             setUseStreaming: (useStreaming) => set({ useStreaming }),
             setGenerationDelay: (delay) => set({ generationDelay: Math.max(0, Math.min(5000, delay)) }),
             setGeminiApiKey: (key) => set({ geminiApiKey: key }),
+            setLibraryPath: (libraryPath, useAbsolute) => set({
+                libraryPath,
+                useAbsoluteLibraryPath: useAbsolute ?? false
+            }),
         }),
         {
             name: 'nais2-settings',

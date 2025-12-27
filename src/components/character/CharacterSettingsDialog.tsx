@@ -9,7 +9,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Users, Upload, X, Zap, Database } from 'lucide-react'
+import { Users, Upload, X, Zap, Database, Lock } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
@@ -22,11 +22,13 @@ const SafeSlider = ({
     onValueCommit,
     max = 1,
     step = 0.01,
+    label,
 }: {
     value: number[]
     onValueCommit: (val: number[]) => void
     max?: number
     step?: number
+    label?: string
 }) => {
     const [localValue, setLocalValue] = React.useState(value)
 
@@ -35,14 +37,22 @@ const SafeSlider = ({
     }, [value])
 
     return (
-        <Slider
-            value={localValue}
-            min={0}
-            max={max}
-            step={step}
-            onValueChange={setLocalValue}
-            onValueCommit={onValueCommit}
-        />
+        <div className="space-y-1">
+            {label && (
+                <div className="flex justify-between">
+                    <Label className="text-xs text-muted-foreground">{label}</Label>
+                    <span className="text-xs font-mono">{localValue[0].toFixed(2)}</span>
+                </div>
+            )}
+            <Slider
+                value={localValue}
+                min={0}
+                max={max}
+                step={step}
+                onValueChange={setLocalValue}
+                onValueCommit={onValueCommit}
+            />
+        </div>
     )
 }
 
@@ -107,8 +117,8 @@ export function CharacterSettingsDialog() {
         })
     }
 
-    // Image List Component (Reusable)
-    const ImageList = ({
+    // Vibe Image List Component
+    const VibeImageList = ({
         images,
         onRemove,
         onUpdate
@@ -150,26 +160,64 @@ export function CharacterSettingsDialog() {
                         )}
                     </div>
                     <div className="flex-1 space-y-3 min-w-0">
-                        <div className="space-y-1">
-                            <div className="flex justify-between">
-                                <Label className="text-xs text-muted-foreground">{t('characterDialog.infoExtracted')}</Label>
-                                <span className="text-xs font-mono">{img.informationExtracted.toFixed(2)}</span>
-                            </div>
-                            <SafeSlider
-                                value={[img.informationExtracted]}
-                                onValueCommit={([v]) => onUpdate(img.id, { informationExtracted: v })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <div className="flex justify-between">
-                                <Label className="text-xs text-muted-foreground">{t('characterDialog.strength')}</Label>
-                                <span className="text-xs font-mono">{img.strength.toFixed(2)}</span>
-                            </div>
-                            <SafeSlider
-                                value={[img.strength]}
-                                onValueCommit={([v]) => onUpdate(img.id, { strength: v })}
-                            />
-                        </div>
+                        <SafeSlider
+                            label={t('characterDialog.vibeInfoExtracted', '정보 추출률 (Information Extracted)')}
+                            value={[img.informationExtracted]}
+                            onValueCommit={([v]) => onUpdate(img.id, { informationExtracted: v })}
+                        />
+                        <SafeSlider
+                            label={t('characterDialog.vibeStrength', '강도 (Reference Strength)')}
+                            value={[img.strength]}
+                            onValueCommit={([v]) => onUpdate(img.id, { strength: v })}
+                        />
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+
+    // Character Reference Image List Component
+    const CharacterImageList = ({
+        images,
+        onRemove,
+        onUpdate
+    }: {
+        images: ReferenceImage[],
+        onRemove: (id: string) => void,
+        onUpdate: (id: string, updates: Partial<ReferenceImage>) => void
+    }) => (
+        <div className="space-y-4 pt-4">
+            {images.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg border border-dashed">
+                    {t('characterDialog.noImages')}
+                </div>
+            )}
+            {images.map(img => (
+                <div key={img.id} className="flex gap-4 p-3 border rounded-lg bg-card bg-muted/10">
+                    <div className="relative shrink-0 w-24 h-24 bg-muted rounded-md overflow-hidden border flex items-center justify-center group/image">
+                        <img src={img.base64} alt="Reference" className="w-full h-full object-cover" />
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover/image:opacity-100 transition-opacity"
+                            onClick={() => onRemove(img.id)}
+                        >
+                            <X className="w-3 h-3" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 space-y-3 min-w-0">
+                        {/* Style Aware - Slider */}
+                        <SafeSlider
+                            label={t('characterDialog.styleAware', '스타일 인지 (Style Aware)')}
+                            value={[img.informationExtracted]}
+                            onValueCommit={([v]) => onUpdate(img.id, { informationExtracted: v })}
+                        />
+                        {/* Fidelity - Slider */}
+                        <SafeSlider
+                            label={t('characterDialog.fidelity', '충실도 (Fidelity)')}
+                            value={[img.strength]}
+                            onValueCommit={([v]) => onUpdate(img.id, { strength: v })}
+                        />
                     </div>
                 </div>
             ))}
@@ -222,7 +270,7 @@ export function CharacterSettingsDialog() {
                                     />
                                 </div>
                             )}
-                            <ImageList
+                            <CharacterImageList
                                 images={characterImages}
                                 onRemove={removeCharacterImage}
                                 onUpdate={updateCharacterImage}
@@ -230,28 +278,38 @@ export function CharacterSettingsDialog() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="vibe" className="flex-1 overflow-y-auto min-h-0 pr-1">
-                        <div className="py-2">
-                            <div
-                                className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer"
-                                onClick={() => vibeInputRef.current?.click()}
-                            >
-                                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground font-medium">{t('characterDialog.uploadVibe')}</p>
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    className="hidden"
-                                    ref={vibeInputRef}
-                                    onChange={(e) => handleFileUpload(e, 'vibe')}
+                    <TabsContent value="vibe" className="flex-1 overflow-y-auto min-h-0 pr-1 relative">
+                        {characterImages.length > 0 && (
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[1px]">
+                                <Lock className="w-8 h-8 text-muted-foreground mb-2" />
+                                <p className="text-sm font-medium text-muted-foreground text-center px-4">
+                                    {t('characterDialog.vibeDisabledMsg')}
+                                </p>
+                            </div>
+                        )}
+                        <div className={characterImages.length > 0 ? "opacity-30 pointer-events-none grayscale filter blur-[1px]" : ""}>
+                            <div className="py-2">
+                                <div
+                                    className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                                    onClick={() => vibeInputRef.current?.click()}
+                                >
+                                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                    <p className="text-sm text-muted-foreground font-medium">{t('characterDialog.uploadVibe')}</p>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        className="hidden"
+                                        ref={vibeInputRef}
+                                        onChange={(e) => handleFileUpload(e, 'vibe')}
+                                    />
+                                </div>
+                                <VibeImageList
+                                    images={vibeImages}
+                                    onRemove={removeVibeImage}
+                                    onUpdate={updateVibeImage}
                                 />
                             </div>
-                            <ImageList
-                                images={vibeImages}
-                                onRemove={removeVibeImage}
-                                onUpdate={updateVibeImage}
-                            />
                         </div>
                     </TabsContent>
                 </Tabs>

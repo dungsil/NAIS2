@@ -489,7 +489,7 @@ export async function generateImage(
 
             // Character Reference (Director tools)
             director_reference_images: processedCharImages,
-            director_reference_information_extracted: (params.charInfo || []).map(() => 1.0), // Force 1.0 as per legacy
+            director_reference_information_extracted: params.charInfo || [],
             director_reference_strength_values: params.charStrength || [],
             director_reference_secondary_strength_values: (params.charStrength || []).map(() => 0), // Default to 0
 

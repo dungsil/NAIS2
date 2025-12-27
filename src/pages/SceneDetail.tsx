@@ -160,6 +160,9 @@ export default function SceneDetail() {
         try {
             if (!scene) return
 
+            // Get preset name for folder structure
+            const currentPreset = useSceneStore.getState().presets.find(p => p.id === activePresetId)
+            const safePresetName = (currentPreset?.name || 'Default').replace(/[<>:"/\\|?*]/g, '_').trim()
             // Sanitize scene name for folder name - MUST match useSceneGeneration.ts logic
             const safeSceneName = scene.name.replace(/[<>:"/\\|?*]/g, '_').trim() || 'Untitled_Scene'
 
@@ -167,26 +170,37 @@ export default function SceneDetail() {
             let folderPath: string
 
             if (useAbsolutePath && savePath) {
-                // Absolute path: savePath/NAIS_Scene/<SceneName>
-                folderPath = await join(savePath, 'NAIS_Scene', safeSceneName)
+                // Absolute path: savePath/NAIS_Scene/<PresetName>/<SceneName>
+                folderPath = await join(savePath, 'NAIS_Scene', safePresetName, safeSceneName)
 
                 if (!(await exists(folderPath))) {
-                    // Try parent folder
-                    const parentPath = await join(savePath, 'NAIS_Scene')
-                    if (await exists(parentPath)) {
-                        await Command.create('explorer', [parentPath]).execute()
+                    // Try parent folder (preset folder)
+                    const presetPath = await join(savePath, 'NAIS_Scene', safePresetName)
+                    if (await exists(presetPath)) {
+                        await Command.create('explorer', [presetPath]).execute()
+                    } else {
+                        // Try NAIS_Scene folder
+                        const naisPath = await join(savePath, 'NAIS_Scene')
+                        if (await exists(naisPath)) {
+                            await Command.create('explorer', [naisPath]).execute()
+                        }
                     }
                     return
                 }
             } else {
-                // Relative path: Pictures/NAIS_Scene/<SceneName>
+                // Relative path: Pictures/NAIS_Scene/<PresetName>/<SceneName>
                 const picDir = await pictureDir()
-                folderPath = await join(picDir, 'NAIS_Scene', safeSceneName)
+                folderPath = await join(picDir, 'NAIS_Scene', safePresetName, safeSceneName)
 
                 if (!(await exists(folderPath))) {
-                    const parentPath = await join(picDir, 'NAIS_Scene')
-                    if (await exists(parentPath)) {
-                        await Command.create('explorer', [parentPath]).execute()
+                    const presetPath = await join(picDir, 'NAIS_Scene', safePresetName)
+                    if (await exists(presetPath)) {
+                        await Command.create('explorer', [presetPath]).execute()
+                    } else {
+                        const parentPath = await join(picDir, 'NAIS_Scene')
+                        if (await exists(parentPath)) {
+                            await Command.create('explorer', [parentPath]).execute()
+                        }
                     }
                     return
                 }

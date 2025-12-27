@@ -26,6 +26,16 @@ import {
     ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 
+// Convert ArrayBuffer to base64 without stack overflow
+const arrayBufferToBase64 = (buffer: Uint8Array): string => {
+    let binary = ''
+    const len = buffer.byteLength
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(buffer[i])
+    }
+    return btoa(binary)
+}
+
 interface SavedImage {
     name: string
     path: string
@@ -47,16 +57,45 @@ interface HistoryImageItemProps {
     onRegenerate: (image: SavedImage) => void
     onOpenSmartTools: (image: SavedImage) => void
     onAddAsReference: (image: SavedImage) => void
+
     onOpenFolder: (image: SavedImage) => void
     onLoadMetadata: (image: SavedImage) => void
+    onLoadComplete: (path: string, data: string) => void
 }
 
 const HistoryImageItem = memo(function HistoryImageItem({
     image, thumbnail, index, isGenerating, getTypeIcon,
     onImageClick, onDelete, onSaveAs, onCopy, onRegenerate,
-    onOpenSmartTools, onAddAsReference, onOpenFolder, onLoadMetadata
+    onOpenSmartTools, onAddAsReference, onOpenFolder, onLoadMetadata,
+    onLoadComplete
 }: HistoryImageItemProps) {
     const { t } = useTranslation()
+    const [localThumbnail, setLocalThumbnail] = useState<string | undefined>(thumbnail)
+
+    useEffect(() => {
+        if (thumbnail) setLocalThumbnail(thumbnail)
+    }, [thumbnail])
+
+    useEffect(() => {
+        if (!localThumbnail) {
+            let active = true
+            const load = async () => {
+                try {
+                    const data = await readFile(image.path)
+                    if (active) {
+                        const base64 = arrayBufferToBase64(data)
+                        const dataUrl = `data:image/png;base64,${base64}`
+                        setLocalThumbnail(dataUrl)
+                        onLoadComplete(image.path, dataUrl)
+                    }
+                } catch (e) {
+                    // console.warn('Failed to load image lazily:', image.path)
+                }
+            }
+            load()
+            return () => { active = false }
+        }
+    }, [image.path, localThumbnail, onLoadComplete])
 
     return (
         <ContextMenu>
@@ -65,7 +104,7 @@ const HistoryImageItem = memo(function HistoryImageItem({
                     className="aspect-square bg-muted/30 rounded-xl overflow-hidden hover:ring-2 hover:ring-primary hover:scale-[1.02] transition-all shadow-sm relative group cursor-pointer"
                     onClick={() => onImageClick(image)}
                 >
-                    {thumbnail ? (
+                    {localThumbnail ? (
                         <img
                             draggable="true"
                             onDragStart={(e) => {
@@ -113,7 +152,7 @@ const HistoryImageItem = memo(function HistoryImageItem({
                             onDragEnd={() => {
                                 useLibraryStore.getState().setDraggedSource(null);
                             }}
-                            src={thumbnail}
+                            src={localThumbnail}
                             alt={`Image ${index + 1}`}
                             className="w-full h-full object-cover"
                         />
@@ -184,15 +223,14 @@ export function HistoryPanel() {
     const navigate = useNavigate()
     const { setActiveImage } = useToolsStore()
 
-    // Convert ArrayBuffer to base64 without stack overflow
-    const arrayBufferToBase64 = (buffer: Uint8Array): string => {
-        let binary = ''
-        const len = buffer.byteLength
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(buffer[i])
-        }
-        return btoa(binary)
-    }
+
+
+    const handleImageLoadComplete = useCallback((path: string, data: string) => {
+        setImageThumbnails(prev => {
+            if (prev[path]) return prev
+            return { ...prev, [path]: data }
+        })
+    }, [])
 
     // Add new image instantly to history (no compression - use original directly)
     const addNewImage = useCallback((imagePath: string, imageData: string) => {
@@ -299,7 +337,7 @@ export function HistoryPanel() {
             const sceneBaseDir = 'NAIS_Scene'
             const scenePicturePath = await pictureDir()
 
-            // Helper function to load scene images from a directory
+            // Helper function to load scene images from a directory (supports presetName/sceneName structure)
             const loadSceneImagesFromDir = async (baseDir: string, useBaseDir: boolean = false) => {
                 try {
                     const checkExists = useBaseDir
@@ -308,35 +346,64 @@ export function HistoryPanel() {
 
                     if (!checkExists) return
 
-                    const sceneDirs = useBaseDir
+                    const presetOrSceneDirs = useBaseDir
                         ? await readDir(sceneBaseDir, { baseDir: BaseDirectory.Picture })
                         : await readDir(baseDir)
 
-                    for (const sceneDir of sceneDirs) {
-                        if (sceneDir.isDirectory) {
+                    for (const presetOrSceneDir of presetOrSceneDirs) {
+                        if (presetOrSceneDir.isDirectory) {
                             try {
-                                const sceneFolderPath = useBaseDir
-                                    ? `${sceneBaseDir}/${sceneDir.name}`
-                                    : await join(baseDir, sceneDir.name)
+                                const presetFolderPath = useBaseDir
+                                    ? `${sceneBaseDir}/${presetOrSceneDir.name}`
+                                    : await join(baseDir, presetOrSceneDir.name)
 
-                                const sceneFiles = useBaseDir
-                                    ? await readDir(sceneFolderPath, { baseDir: BaseDirectory.Picture })
-                                    : await readDir(sceneFolderPath)
+                                const presetContents = useBaseDir
+                                    ? await readDir(presetFolderPath, { baseDir: BaseDirectory.Picture })
+                                    : await readDir(presetFolderPath)
 
-                                for (const file of sceneFiles) {
-                                    if (file.name && (file.name.toLowerCase().endsWith('.png') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.webp'))) {
+                                for (const item of presetContents) {
+                                    if (item.isDirectory) {
+                                        // This is the sceneName folder (new structure: presetName/sceneName/)
+                                        const sceneFolderPath = useBaseDir
+                                            ? `${presetFolderPath}/${item.name}`
+                                            : await join(presetFolderPath, item.name)
+
+                                        const sceneFiles = useBaseDir
+                                            ? await readDir(sceneFolderPath, { baseDir: BaseDirectory.Picture })
+                                            : await readDir(sceneFolderPath)
+
+                                        for (const file of sceneFiles) {
+                                            if (file.name && (file.name.toLowerCase().endsWith('.png') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.webp'))) {
+                                                const fullPath = useBaseDir
+                                                    ? await join(scenePicturePath, sceneBaseDir, presetOrSceneDir.name, item.name, file.name)
+                                                    : await join(sceneFolderPath, file.name)
+
+                                                if (images.some(img => img.path === fullPath)) continue
+
+                                                const match = file.name.match(/_(\d+)\.[^.]+$/)
+                                                const timestamp = match ? parseInt(match[1]) : 0
+
+                                                images.push({
+                                                    name: file.name,
+                                                    path: fullPath,
+                                                    timestamp,
+                                                    type: 'scene'
+                                                })
+                                            }
+                                        }
+                                    } else if (item.name && (item.name.toLowerCase().endsWith('.png') || item.name.toLowerCase().endsWith('.jpg') || item.name.toLowerCase().endsWith('.webp'))) {
+                                        // This is a direct image file (old structure: sceneName/image.png)
                                         const fullPath = useBaseDir
-                                            ? await join(scenePicturePath, sceneBaseDir, sceneDir.name, file.name)
-                                            : await join(sceneFolderPath, file.name)
+                                            ? await join(scenePicturePath, sceneBaseDir, presetOrSceneDir.name, item.name)
+                                            : await join(presetFolderPath, item.name)
 
-                                        // Skip if already in images array (avoid duplicates)
                                         if (images.some(img => img.path === fullPath)) continue
 
-                                        const match = file.name.match(/_(\d+)\.[^.]+$/)
+                                        const match = item.name.match(/_(\d+)\.[^.]+$/)
                                         const timestamp = match ? parseInt(match[1]) : 0
 
                                         images.push({
-                                            name: file.name,
+                                            name: item.name,
                                             path: fullPath,
                                             timestamp,
                                             type: 'scene'
@@ -344,7 +411,7 @@ export function HistoryPanel() {
                                     }
                                 }
                             } catch (e) {
-                                console.warn(`Failed to read scene dir ${sceneDir.name}:`, e)
+                                console.warn(`Failed to read preset/scene dir ${presetOrSceneDir.name}:`, e)
                             }
                         }
                     }
@@ -365,15 +432,8 @@ export function HistoryPanel() {
             images.sort((a, b) => b.timestamp - a.timestamp)
             setSavedImages(images)
 
-            const thumbnails: Record<string, string> = {}
-            for (const img of images.slice(0, 20)) {
-                try {
-                    const data = await readFile(img.path)
-                    const base64 = arrayBufferToBase64(data)
-                    thumbnails[img.path] = `data:image/png;base64,${base64}`
-                } catch { /* ignore */ }
-            }
-            setImageThumbnails(thumbnails)
+            // NOTE: Removed pre-loading of thumbnails using readFile to prevent UI lag.
+            // Using convertFileSrc in the render loop is much more efficient as it uses native asset handling.
         } catch (error) {
             console.error('Failed to load history:', error)
             setSavedImages([])
@@ -699,6 +759,7 @@ export function HistoryPanel() {
                                 key={image.path}
                                 image={image}
                                 thumbnail={imageThumbnails[image.path]}
+                                onLoadComplete={handleImageLoadComplete}
                                 index={index}
                                 isGenerating={isGenerating}
                                 getTypeIcon={getTypeIcon}

@@ -64,7 +64,7 @@ export default function Settings() {
     const { t, i18n } = useTranslation()
     const { theme, setTheme } = useThemeStore()
     const { token, isVerified, anlas, isLoading, verifyAndSave } = useAuthStore()
-    const { savePath, autoSave, setSavePath, setAutoSave, promptFontSize, setPromptFontSize, useStreaming, setUseStreaming, generationDelay, setGenerationDelay, geminiApiKey, setGeminiApiKey, useAbsolutePath } = useSettingsStore()
+    const { savePath, autoSave, setSavePath, setAutoSave, promptFontSize, setPromptFontSize, useStreaming, setUseStreaming, generationDelay, setGenerationDelay, geminiApiKey, setGeminiApiKey, useAbsolutePath, libraryPath, useAbsoluteLibraryPath, setLibraryPath } = useSettingsStore()
     const [localGeminiKey, setLocalGeminiKey] = useState(geminiApiKey)
 
     const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -74,6 +74,8 @@ export default function Settings() {
     )
     const [localSavePath, setLocalSavePath] = useState(savePath)
     const [isAbsolutePath, setIsAbsolutePath] = useState(useAbsolutePath)
+    const [localLibraryPath, setLocalLibraryPath] = useState(libraryPath)
+    const [isAbsoluteLibraryPath, setIsAbsoluteLibraryPath] = useState(useAbsoluteLibraryPath)
     const [appVersion, setAppVersion] = useState('')
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
 
@@ -127,6 +129,35 @@ export default function Settings() {
         setLocalSavePath('NAIS_Output')
         setIsAbsolutePath(false)
         setSavePath('NAIS_Output', false)
+        toast({ title: t('settingsPage.saved'), variant: 'success' })
+    }
+
+    // Library path handlers
+    const handleSaveLibraryPath = () => {
+        setLibraryPath(localLibraryPath, isAbsoluteLibraryPath)
+        toast({ title: t('settingsPage.saved'), variant: 'success' })
+    }
+
+    const handleBrowseLibraryFolder = async () => {
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                title: t('settingsPage.library.selectFolder', 'Select Library Folder'),
+            })
+            if (selected && typeof selected === 'string') {
+                setLocalLibraryPath(selected)
+                setIsAbsoluteLibraryPath(true)
+            }
+        } catch (e) {
+            console.error('Folder selection failed:', e)
+        }
+    }
+
+    const handleResetLibraryToDefault = async () => {
+        setLocalLibraryPath('NAIS_Library')
+        setIsAbsoluteLibraryPath(false)
+        setLibraryPath('NAIS_Library', false)
         toast({ title: t('settingsPage.saved'), variant: 'success' })
     }
 
@@ -254,9 +285,24 @@ export default function Settings() {
                                                             <Button
                                                                 size="sm"
                                                                 onClick={async () => {
-                                                                    toast({ title: t('update.downloading', '다운로드 중...') })
+                                                                    toast({ title: t('update.downloading', '다운로드 중...'), description: t('update.pleaseWait', '잠시만 기다려주세요') })
                                                                     await update.downloadAndInstall()
-                                                                    await relaunch()
+                                                                    // Show restart confirmation instead of auto-restart
+                                                                    toast({
+                                                                        title: t('update.installed', '설치 완료'),
+                                                                        description: t('update.restartConfirm', '앱을 재시작하시겠습니까? 저장하지 않은 작업이 있다면 먼저 저장해주세요.'),
+                                                                        action: (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={async () => {
+                                                                                    await relaunch()
+                                                                                }}
+                                                                            >
+                                                                                <RefreshCw className="h-4 w-4 mr-1" />
+                                                                                {t('update.restart', '재시작')}
+                                                                            </Button>
+                                                                        ),
+                                                                    })
                                                                 }}
                                                             >
                                                                 <Download className="h-4 w-4" />
@@ -531,6 +577,59 @@ export default function Settings() {
                                         checked={autoSave}
                                         onChange={(e) => setAutoSave(e.target.checked)}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Library Path Setting */}
+                            <div className="border border-border/50 rounded-xl p-6 space-y-6 bg-card/30">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium">{t('settingsPage.library.folder', 'Library Folder')}</label>
+                                        {isAbsoluteLibraryPath && (
+                                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                                {t('settingsPage.save.customPath', 'Custom Path')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={localLibraryPath}
+                                            onChange={(e) => {
+                                                setLocalLibraryPath(e.target.value)
+                                                const isAbsolute = /^[A-Za-z]:[\\/]/.test(e.target.value) || e.target.value.startsWith('/')
+                                                setIsAbsoluteLibraryPath(isAbsolute)
+                                            }}
+                                            placeholder="NAIS_Library"
+                                            className="flex-1"
+                                        />
+                                        <Button variant="outline" onClick={handleBrowseLibraryFolder}>
+                                            <FolderOpen className="h-4 w-4 mr-2" />
+                                            {t('settingsPage.save.browse', 'Browse')}
+                                        </Button>
+                                        <Button
+                                            onClick={handleSaveLibraryPath}
+                                            variant={(localLibraryPath !== libraryPath || isAbsoluteLibraryPath !== useAbsoluteLibraryPath) ? "default" : "outline"}
+                                            className={(localLibraryPath !== libraryPath || isAbsoluteLibraryPath !== useAbsoluteLibraryPath)
+                                                ? "animate-pulse bg-primary hover:bg-primary/90 text-primary-foreground"
+                                                : ""}
+                                        >
+                                            <Save className="h-4 w-4 mr-2" />
+                                            {t('settingsPage.saveBtn')}
+                                        </Button>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-muted-foreground">
+                                            {isAbsoluteLibraryPath
+                                                ? t('settingsPage.library.absolutePathHelp', 'Library files will be saved to this exact folder.')
+                                                : t('settingsPage.library.folderHelp', 'Default: Pictures/NAIS_Library')}
+                                        </p>
+                                        {isAbsoluteLibraryPath && (
+                                            <Button variant="ghost" size="sm" onClick={handleResetLibraryToDefault} className="h-6 text-xs">
+                                                <RotateCcw className="h-3 w-3 mr-1" />
+                                                {t('settingsPage.save.resetDefault', 'Reset to Default')}
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </section>

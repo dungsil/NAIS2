@@ -20,7 +20,7 @@ interface ImageReferenceDialogProps {
 
 export function ImageReferenceDialog({ open, onOpenChange, imageBase64 }: ImageReferenceDialogProps) {
     const { t } = useTranslation()
-    const { addVibeImage, addCharacterImage } = useCharacterStore()
+    const { addVibeImage, addCharacterImage, characterImages } = useCharacterStore()
     const [isProcessing, setIsProcessing] = useState(false)
 
     const handleAddAsVibe = async () => {
@@ -83,7 +83,7 @@ export function ImageReferenceDialog({ open, onOpenChange, imageBase64 }: ImageR
                         {/* Character Reference Button - Top */}
                         <Button
                             variant="outline"
-                            className="flex-1 flex items-center gap-3 hover:bg-primary/10 hover:border-primary"
+                            className="flex-1 flex items-center justify-start gap-3 hover:bg-primary/10 hover:border-primary"
                             onClick={handleAddAsCharacter}
                             disabled={isProcessing}
                         >
@@ -101,9 +101,10 @@ export function ImageReferenceDialog({ open, onOpenChange, imageBase64 }: ImageR
                         {/* Vibe Transfer Button - Bottom */}
                         <Button
                             variant="outline"
-                            className="flex-1 flex items-center gap-3 hover:bg-primary/10 hover:border-primary"
+                            className="flex-1 flex items-center justify-start gap-3 hover:bg-primary/10 hover:border-primary"
                             onClick={handleAddAsVibe}
-                            disabled={isProcessing}
+                            disabled={isProcessing || characterImages.length > 0}
+                            title={characterImages.length > 0 ? t('characterDialog.vibeDisabledMsg') : undefined}
                         >
                             <Sparkles className="h-6 w-6 text-purple-500 flex-shrink-0" />
                             <div className="text-left">
@@ -111,7 +112,9 @@ export function ImageReferenceDialog({ open, onOpenChange, imageBase64 }: ImageR
                                     {t('imageRef.vibeTransfer', 'Vibe Transfer')}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                    {t('imageRef.vibeDesc', '이미지 스타일/분위기 참조')}
+                                    {characterImages.length > 0
+                                        ? <span className="text-destructive font-medium">{t('characterDialog.vibeDisabledMsg')}</span>
+                                        : t('imageRef.vibeDesc', '이미지 스타일/분위기 참조')}
                                 </div>
                             </div>
                         </Button>

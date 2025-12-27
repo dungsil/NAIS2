@@ -219,7 +219,12 @@
         "strength": "強度",
         "noImages": "画像がありません。",
         "encodedDataOnly": "エンコード済み\nデータのみ",
-        "preEncodedTooltip": "事前エンコード済み (API呼び出し不要)"
+        "preEncodedTooltip": "事前エンコード済み (API呼び出し不要)",
+        "vibeInfoExtracted": "情報抽出率 (Information Extracted)",
+        "vibeStrength": "強度 (Reference Strength)",
+        "styleAware": "スタイル認識 (Style Aware)",
+        "fidelity": "忠実度 (Fidelity)",
+        "vibeDisabledMsg": "キャラリファレンスがある場合は使用できません。"
     },
     "imageRef": {
         "title": "画像参照を追加",
@@ -421,6 +426,12 @@
             "customPath": "カスタムパス",
             "autoSave": "自動保存",
             "autoSaveHelp": "画像生成時に自動的に保存します。"
+        },
+        "library": {
+            "folder": "ライブラリフォルダ",
+            "folderHelp": "デフォルト: Pictures/NAIS_Library",
+            "absolutePathHelp": "ライブラリファイルはこのフォルダに直接保存されます。",
+            "selectFolder": "ライブラリフォルダを選択"
         },
         "streaming": {
             "title": "ストリーミング生成",

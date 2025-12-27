@@ -219,7 +219,12 @@
         "strength": "Strength",
         "noImages": "No images added.",
         "encodedDataOnly": "Encoded\nData Only",
-        "preEncodedTooltip": "Pre-encoded (no API call needed)"
+        "preEncodedTooltip": "Pre-encoded (no API call needed)",
+        "vibeInfoExtracted": "Information Extracted",
+        "vibeStrength": "Reference Strength",
+        "styleAware": "Style Aware",
+        "fidelity": "Fidelity",
+        "vibeDisabledMsg": "Cannot use with Character Reference active."
     },
     "imageRef": {
         "title": "Add Image Reference",
@@ -421,6 +426,12 @@
             "customPath": "Custom Path",
             "autoSave": "Auto Save",
             "autoSaveHelp": "Automatically save images when generated."
+        },
+        "library": {
+            "folder": "Library Folder",
+            "folderHelp": "Default: Pictures/NAIS_Library",
+            "absolutePathHelp": "Library files will be saved to this exact folder.",
+            "selectFolder": "Select Library Folder"
         },
         "streaming": {
             "title": "Streaming Generation",

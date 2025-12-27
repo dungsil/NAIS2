@@ -170,6 +170,7 @@ export function useSceneGeneration() {
                     vibeImages: vibeImages.map(img => img.base64),
                     vibeInfo: vibeImages.map(img => img.informationExtracted),
                     vibeStrength: vibeImages.map(img => img.strength),
+                    preEncodedVibes: vibeImages.map(img => img.encodedVibe || null),
 
                     // Character Prompts
                     characterPrompts: characterPrompts
@@ -201,6 +202,9 @@ export function useSceneGeneration() {
                 // before the current generation finishes saving.
 
                 if (result.success && result.imageData) {
+                    // Get preset name for folder structure
+                    const currentPreset = useSceneStore.getState().presets.find(p => p.id === activePresetId)
+                    const safePresetName = (currentPreset?.name || 'Default').replace(/[<>:"/\\|?*]/g, '_').trim()
                     // Sanitize scene name for folder name
                     const safeSceneName = scene.name.replace(/[<>:"/\\|?*]/g, '_').trim() || 'Untitled_Scene'
                     const fileName = `NAIS_SCENE_${Date.now()}.png`
@@ -213,12 +217,16 @@ export function useSceneGeneration() {
                         let fullPath: string
 
                         if (useAbsolutePath && savePath) {
-                            // Save to absolute path: savePath/NAIS_Scene/sceneName/
+                            // Save to absolute path: savePath/NAIS_Scene/presetName/sceneName/
                             const naisSceneDir = await join(savePath, 'NAIS_Scene')
-                            const sceneDir = await join(naisSceneDir, safeSceneName)
+                            const presetDir = await join(naisSceneDir, safePresetName)
+                            const sceneDir = await join(presetDir, safeSceneName)
 
                             if (!(await exists(naisSceneDir))) {
                                 await mkdir(naisSceneDir, { recursive: true })
+                            }
+                            if (!(await exists(presetDir))) {
+                                await mkdir(presetDir, { recursive: true })
                             }
                             if (!(await exists(sceneDir))) {
                                 await mkdir(sceneDir, { recursive: true })
@@ -227,21 +235,26 @@ export function useSceneGeneration() {
                             fullPath = await join(sceneDir, fileName)
                             await writeFile(fullPath, binaryData)
                         } else {
-                            // Save to Pictures/NAIS_Scene/sceneName/
+                            // Save to Pictures/NAIS_Scene/presetName/sceneName/
                             const baseDir = await pictureDir()
-                            const sceneDir = `NAIS_Scene/${safeSceneName}`
+                            const presetSceneDir = `NAIS_Scene/${safePresetName}/${safeSceneName}`
 
                             const naisSceneDir = 'NAIS_Scene'
                             if (!(await exists(naisSceneDir, { baseDir: BaseDirectory.Picture }))) {
                                 await mkdir(naisSceneDir, { baseDir: BaseDirectory.Picture })
                             }
 
-                            if (!(await exists(sceneDir, { baseDir: BaseDirectory.Picture }))) {
-                                await mkdir(sceneDir, { baseDir: BaseDirectory.Picture })
+                            const presetDirPath = `NAIS_Scene/${safePresetName}`
+                            if (!(await exists(presetDirPath, { baseDir: BaseDirectory.Picture }))) {
+                                await mkdir(presetDirPath, { baseDir: BaseDirectory.Picture })
                             }
 
-                            await writeFile(`${sceneDir}/${fileName}`, binaryData, { baseDir: BaseDirectory.Picture })
-                            fullPath = await join(baseDir, sceneDir, fileName)
+                            if (!(await exists(presetSceneDir, { baseDir: BaseDirectory.Picture }))) {
+                                await mkdir(presetSceneDir, { baseDir: BaseDirectory.Picture })
+                            }
+
+                            await writeFile(`${presetSceneDir}/${fileName}`, binaryData, { baseDir: BaseDirectory.Picture })
+                            fullPath = await join(baseDir, presetSceneDir, fileName)
                         }
 
                         // Notify HistoryPanel immediately with image data
@@ -260,6 +273,20 @@ export function useSceneGeneration() {
                             seed: params.seed,
                             timestamp: new Date()
                         })
+
+                        // Cache newly encoded vibes to character store for future use (shows lightning icon)
+                        if (result.encodedVibes && result.encodedVibes.length > 0) {
+                            const { vibeImages, updateVibeImage } = useCharacterStore.getState()
+                            let encodedIndex = 0
+                            // Match encoded vibes to images that didn't have encoded data
+                            for (let vi = 0; vi < vibeImages.length && encodedIndex < result.encodedVibes.length; vi++) {
+                                // Only update vibes that weren't pre-encoded
+                                if (!vibeImages[vi].encodedVibe) {
+                                    updateVibeImage(vibeImages[vi].id, { encodedVibe: result.encodedVibes[encodedIndex] })
+                                    encodedIndex++
+                                }
+                            }
+                        }
 
                     } catch (saveError) {
                         console.error('Failed to save scene image file:', saveError)
