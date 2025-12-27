@@ -48,9 +48,9 @@ jobs:
       - name: Setup gettext library for Intel Python on Apple Silicon
         if: matrix.platform == 'macos-14' && matrix.python_arch == 'x64'
         run: |
-          brew install gettext
-          mkdir -p /usr/local/opt/gettext/lib
-          cp /opt/homebrew/opt/gettext/lib/libintl.8.dylib /usr/local/opt/gettext/lib/libintl.8.dylib
+          brew install gettext || true
+          sudo mkdir -p /usr/local/opt/gettext/lib
+          sudo cp /opt/homebrew/opt/gettext/lib/libintl.8.dylib /usr/local/opt/gettext/lib/libintl.8.dylib
 
 
 
