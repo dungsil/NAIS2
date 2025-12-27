@@ -616,7 +616,11 @@ pub fn run() {
                             let _ = std::process::Command::new("taskkill")
                                 .args(["/F", "/T", "/PID", &_pid.to_string()])
                                 .output();
-                            // We use output() to wait for it to finish before the app fully exits
+
+                            // Safety net: Use taskkill by name to ensure it's dead
+                            let _ = std::process::Command::new("taskkill")
+                                .args(["/F", "/IM", "tagger-server.exe"])
+                                .output();
                         }
                         #[cfg(not(target_os = "windows"))]
                         {
