@@ -3,6 +3,22 @@
         "name": "NAIS2",
         "description": "NovelAI 統合スタジオ"
     },
+    "common": {
+        "save": "保存",
+        "saved": "保存しました",
+        "cancel": "キャンセル",
+        "delete": "削除",
+        "edit": "編集",
+        "copy": "コピー",
+        "brush": "ブラシ",
+        "eraser": "消しゴム",
+        "size": "サイズ",
+        "generating": "生成中...",
+        "generate": "生成",
+        "change": "変更",
+        "download": "ダウンロード",
+        "export": "エクスポート"
+    },
     "update": {
         "available": "アップデートがあります",
         "version": "v{{version}}にアップデートできます",

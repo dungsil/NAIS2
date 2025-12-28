@@ -32,7 +32,8 @@
         "generating": "Generating...",
         "generate": "Generate",
         "change": "Change",
-        "download": "Download"
+        "download": "Download",
+        "export": "Export"
     },
     "toast": {
         "generationCancelled": {

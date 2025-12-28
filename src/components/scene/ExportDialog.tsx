@@ -185,7 +185,7 @@ export function ExportDialog({ open, onOpenChange, activePresetName, scenes }: E
                         </Button>
                         <Button onClick={handleExport} disabled={isExporting}>
                             {isExporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('actions.export')}
+                            {t('common.export')}
                         </Button>
                     </div>
                 </DialogFooter>

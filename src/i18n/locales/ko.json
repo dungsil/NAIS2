@@ -32,7 +32,8 @@
         "generating": "생성 중...",
         "generate": "생성",
         "change": "변경",
-        "download": "다운로드"
+        "download": "다운로드",
+        "export": "내보내기"
     },
     "toast": {
         "generationCancelled": {
