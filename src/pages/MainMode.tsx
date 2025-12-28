@@ -518,7 +518,7 @@ export default function MainMode() {
                         <div className="flex items-center gap-2 ml-2">
                             <div className="w-32 h-1.5 bg-white/20 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-emerald-400 to-primary transition-all duration-200"
+                                    className="h-full bg-gradient-to-r from-emerald-400 to-primary transition-[width] duration-300 ease-out"
                                     style={{ width: `${streamProgress}%` }}
                                 />
                             </div>

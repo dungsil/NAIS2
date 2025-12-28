@@ -1106,6 +1106,9 @@ export async function generateImageStream(
                         const eventType = decoded.event_type || decoded.event || 'unknown'
                         const stepIx = decoded.step_ix as number | undefined
 
+                        // Debug: log all events
+                        console.log(`[Stream] Event: ${eventType}, step: ${stepIx}`)
+
                         // Calculate progress based on step index
                         if (typeof stepIx === 'number') {
                             const progress = Math.round((stepIx / totalSteps) * 100)
@@ -1113,15 +1116,18 @@ export async function generateImageStream(
                             // Process image from event
                             const imgField = decoded.image as Uint8Array | undefined
 
-                            if (imgField && imgField instanceof Uint8Array) {
-                                // Only show every few steps to avoid overwhelming UI
-                                if (eventType === 'intermediate' && stepIx > lastStepShown + 1) {
+                            // Always update progress for smooth progress bar
+                            if (eventType === 'intermediate') {
+                                // Show preview image every few steps to avoid overwhelming UI
+                                if (imgField && imgField instanceof Uint8Array && stepIx > lastStepShown + 1) {
                                     lastStepShown = stepIx
-                                    console.log(`[Stream] Step ${stepIx}/${totalSteps} (${progress}%)`)
-
-                                    // Convert intermediate image to base64 and send to callback
+                                    console.log(`[Stream] Step ${stepIx}/${totalSteps} (${progress}%) - with preview`)
                                     const previewBase64 = binaryToBase64(imgField)
                                     onProgress?.(progress, previewBase64)
+                                } else {
+                                    // Update progress without image preview
+                                    console.log(`[Stream] Step ${stepIx}/${totalSteps} (${progress}%) - progress only`)
+                                    onProgress?.(progress)
                                 }
                             }
                         }

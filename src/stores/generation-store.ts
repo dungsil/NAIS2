@@ -13,6 +13,41 @@ import { processWildcards } from '@/lib/wildcard-processor'
 import i18n from '@/i18n'
 import { toast } from '@/components/ui/use-toast'
 
+// Generate thumbnail from base64 image (max 256px, JPEG quality 0.7)
+const createThumbnail = (base64Image: string, maxSize = 256): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')!
+            
+            // Calculate thumbnail dimensions
+            let width = img.width
+            let height = img.height
+            if (width > height) {
+                if (width > maxSize) {
+                    height = Math.round(height * maxSize / width)
+                    width = maxSize
+                }
+            } else {
+                if (height > maxSize) {
+                    width = Math.round(width * maxSize / height)
+                    height = maxSize
+                }
+            }
+            
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, 0, 0, width, height)
+            
+            // Use JPEG for smaller size (~10-30KB instead of 2-5MB)
+            resolve(canvas.toDataURL('image/jpeg', 0.7))
+        }
+        img.onerror = () => resolve(base64Image) // Fallback to original
+        img.src = base64Image
+    })
+}
+
 interface Resolution {
     label: string
     width: number
@@ -369,10 +404,9 @@ export const useGenerationStore = create<GenerationState>()(
                         if (canUseStreaming) {
                             console.log('[Generate] Using streaming API...')
                             result = await generateImageStream(token, generationParams, (progress, partialImage) => {
-                                set({ streamProgress: progress })
-                                // Display intermediate preview images as they arrive
+                                // Only update progress when preview image arrives (smoother like Scene mode)
                                 if (partialImage) {
-                                    set({ previewImage: `data:image/png;base64,${partialImage}` })
+                                    set({ streamProgress: progress, previewImage: `data:image/png;base64,${partialImage}` })
                                 }
                             })
                         } else {
@@ -405,9 +439,12 @@ export const useGenerationStore = create<GenerationState>()(
                                 }
                             }
 
+                            // Create thumbnail for history (reduces memory from ~3MB to ~20KB per image)
+                            const thumbnail = await createThumbnail(imageUrl)
+
                             const historyItem: HistoryItem = {
                                 id: Date.now().toString(),
-                                url: imageUrl,
+                                url: thumbnail, // Store thumbnail instead of full image
                                 prompt: finalPrompt,
                                 seed: currentSeed,
                                 timestamp: new Date(),
@@ -475,7 +512,7 @@ export const useGenerationStore = create<GenerationState>()(
                             }
 
                             set(state => ({
-                                history: [historyItem, ...state.history].slice(0, 50)
+                                history: [historyItem, ...state.history].slice(0, 20)
                             }))
 
                             // Refresh Anlas balance
@@ -526,7 +563,7 @@ export const useGenerationStore = create<GenerationState>()(
             },
 
             addToHistory: (item) => set(state => ({
-                history: [item, ...state.history].slice(0, 50)
+                history: [item, ...state.history].slice(0, 20)
             })),
 
             clearHistory: () => set({ history: [] }),
@@ -570,9 +607,16 @@ export const useGenerationStore = create<GenerationState>()(
                 strength: state.strength,
                 noise: state.noise,
                 inpaintingPrompt: state.inpaintingPrompt,
-                // History IS now persisted thanks to IndexedDB
-                history: state.history,
+                // History - limit to 20 items to prevent memory issues
+                history: state.history.slice(0, 20),
             }),
+            onRehydrateStorage: () => (state) => {
+                // Trim history to 20 items on load to prevent OOM
+                if (state && state.history && state.history.length > 20) {
+                    console.log(`[GenerationStore] Trimming history from ${state.history.length} to 20 items`)
+                    state.history = state.history.slice(0, 20)
+                }
+            },
         }
     )
 )
