@@ -43,6 +43,10 @@ export function useUpdateChecker() {
             // Download only (not install)
             let totalBytes = 0
             let downloadedBytes = 0
+            let lastReportedPercent = -1
+            let lastUpdateTime = 0
+            const THROTTLE_MS = 100 // Limit updates to every 100ms
+
             await update.download((event) => {
                 if (event.event === 'Started' && event.data.contentLength) {
                     totalBytes = event.data.contentLength
@@ -50,7 +54,15 @@ export function useUpdateChecker() {
                     downloadedBytes += event.data.chunkLength
                     if (totalBytes > 0) {
                         const percent = Math.round((downloadedBytes / totalBytes) * 100)
-                        setDownloadProgress(percent)
+                        const now = Date.now()
+                        
+                        // Only update if percent changed AND throttle time passed (or 100% complete)
+                        if (percent !== lastReportedPercent && 
+                            (percent === 100 || now - lastUpdateTime >= THROTTLE_MS)) {
+                            lastReportedPercent = percent
+                            lastUpdateTime = now
+                            setDownloadProgress(percent)
+                        }
                     }
                 }
             })

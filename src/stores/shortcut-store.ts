@@ -30,12 +30,12 @@ export interface KeyBinding {
 
 // 기본 단축키 설정
 const DEFAULT_BINDINGS: Record<ShortcutAction, KeyBinding> = {
-    'navigate:main': { key: '!', shift: true, label: 'Shift+1', description: 'shortcuts.actions.navigateMain' },
-    'navigate:scenes': { key: '@', shift: true, label: 'Shift+2', description: 'shortcuts.actions.navigateScenes' },
-    'navigate:tools': { key: '#', shift: true, label: 'Shift+3', description: 'shortcuts.actions.navigateTools' },
-    'navigate:web': { key: '$', shift: true, label: 'Shift+4', description: 'shortcuts.actions.navigateWeb' },
-    'navigate:library': { key: '%', shift: true, label: 'Shift+5', description: 'shortcuts.actions.navigateLibrary' },
-    'navigate:settings': { key: '^', shift: true, label: 'Shift+6', description: 'shortcuts.actions.navigateSettings' },
+    'navigate:main': { key: '1', ctrl: true, label: 'Ctrl+1', description: 'shortcuts.actions.navigateMain' },
+    'navigate:scenes': { key: '2', ctrl: true, label: 'Ctrl+2', description: 'shortcuts.actions.navigateScenes' },
+    'navigate:tools': { key: '3', ctrl: true, label: 'Ctrl+3', description: 'shortcuts.actions.navigateTools' },
+    'navigate:web': { key: '4', ctrl: true, label: 'Ctrl+4', description: 'shortcuts.actions.navigateWeb' },
+    'navigate:library': { key: '5', ctrl: true, label: 'Ctrl+5', description: 'shortcuts.actions.navigateLibrary' },
+    'navigate:settings': { key: '6', ctrl: true, label: 'Ctrl+6', description: 'shortcuts.actions.navigateSettings' },
     'open:promptGenerator': { key: 'g', ctrl: true, label: 'Ctrl+G', description: 'shortcuts.actions.promptGenerator' },
     'open:fragmentDialog': { key: 'f', ctrl: true, label: 'Ctrl+F', description: 'shortcuts.actions.fragmentDialog' },
     'open:parameterSettings': { key: 'p', ctrl: true, label: 'Ctrl+P', description: 'shortcuts.actions.parameterSettings' },

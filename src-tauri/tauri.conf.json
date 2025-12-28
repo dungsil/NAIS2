@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "NAIS2",
-  "version": "2.0.12",
+  "version": "2.0.13",
   "identifier": "com.sunakgo.nais2",
   "build": {
     "frontendDist": "../dist",
@@ -53,7 +53,7 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "perMachine",
+        "installMode": "currentUser",
         "installerHooks": "nsis/installer-hooks.nsh"
       }
     }
