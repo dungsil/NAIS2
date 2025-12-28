@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Fragment, KeyboardEvent, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, Fragment, KeyboardEvent, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Editor from 'react-simple-code-editor'
 import { getCaretCoordinates } from '@/utils/caret-coords'

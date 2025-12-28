@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { LibraryItem as LibraryItemType } from '@/stores/library-store'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { LibraryContextMenu } from './LibraryContextMenu'
@@ -19,6 +20,7 @@ interface LibraryItemProps {
 }
 
 export function LibraryItem({ item, className, isOverlay, onRename, onAddRef, onLoadMetadata, onImageClick, isEditMode, isSelected, onSelectionClick }: LibraryItemProps) {
+    const { t } = useTranslation()
     const [imageUrl, setImageUrl] = useState<string>('')
     const [isLoading, setIsLoading] = useState(true)
 
@@ -98,7 +100,7 @@ export function LibraryItem({ item, className, isOverlay, onRename, onAddRef, on
             {item.isStack && (
                 <div className="absolute top-2 right-2 z-30 px-2 py-1 bg-purple-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
                     <Layers className="h-3 w-3" />
-                    {item.stackItems?.length || 0}
+                    {t('library.stackCount', '{{count}}개', { count: item.stackItems?.length || 0 })}
                 </div>
             )}
 

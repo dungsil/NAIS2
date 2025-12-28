@@ -6,8 +6,6 @@ import { StateStorage } from 'zustand/middleware'
 const DB_NAME = 'nais2-db'
 const STORE_NAME = 'keyval'
 
-let dbInstance: IDBDatabase | null = null
-
 const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1)
     request.onupgradeneeded = (event) => {
@@ -17,7 +15,6 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
         }
     }
     request.onsuccess = () => {
-        dbInstance = request.result
         resolve(request.result)
     }
     request.onerror = () => reject(request.error)

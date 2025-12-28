@@ -99,7 +99,6 @@ export default function SceneMode() {
     const activePreset = useSceneStore(s => s.presets.find(p => p.id === s.activePresetId))
     const scenes = activePreset?.scenes || []
     const scrollPosition = useSceneStore(s => s.scrollPosition)
-    const setScrollPosition = useSceneStore(s => s.setScrollPosition)
     
     // Scroll container ref
     const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -184,7 +183,8 @@ export default function SceneMode() {
 
     const handleAddScene = () => {
         if (activePresetId) {
-            addScene(activePresetId)
+            const sceneCount = scenes.length + 1
+            addScene(activePresetId, t('scene.defaultName', '씬 {{num}}', { num: sceneCount }))
         }
     }
 
@@ -618,7 +618,6 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
     const toggleSceneSelection = useSceneStore.getState().toggleSceneSelection
     const selectSceneRange = useSceneStore.getState().selectSceneRange
     const lastSelectedSceneId = useSceneStore.getState().lastSelectedSceneId
-    const batchCount = useGenerationStore.getState().batchCount
 
     const thumbnail = getSceneThumbnail(scene)
     const [imageUrl, setImageUrl] = useState<string>('')

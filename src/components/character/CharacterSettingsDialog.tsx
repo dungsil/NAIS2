@@ -56,7 +56,7 @@ const SafeSlider = ({
     )
 }
 
-export function CharacterSettingsDialog() {
+export function CharacterSettingsDialog({ open, onOpenChange }: { open?: boolean, onOpenChange?: (open: boolean) => void } = {}) {
     const { t } = useTranslation()
     const {
         characterImages,
@@ -227,7 +227,7 @@ export function CharacterSettingsDialog() {
     const totalCount = characterImages.length + vibeImages.length
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl h-9 relative group">
                     <Users className="h-3.5 w-3.5 mr-1.5" />

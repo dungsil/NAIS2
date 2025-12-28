@@ -66,6 +66,7 @@
         "description": "프롬프트를 카드로 저장하고 대량 생성하세요",
         "generateAll": "예약 생성",
         "addScene": "씬 추가",
+        "defaultName": "씬 {{num}}",
         "noScenes": "씬이 없습니다",
         "noScenesDesc": "첫 번째 씬을 추가하여 시작하세요",
         "preset": "프리셋 선택...",
@@ -407,7 +408,8 @@
         "renameDesc": "선택한 이미지의 새로운 이름을 입력하세요.",
         "dropHint": "이미지를 드래그하여 추가하세요",
         "createStack": "스택 만들기",
-        "unstack": "스택 해제"
+        "unstack": "스택 해제",
+        "stackCount": "{{count}}개"
     },
     "settingsPage": {
         "title": "설정",

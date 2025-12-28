@@ -51,6 +51,7 @@
         "description": "プロンプトをカードとして保存し、一括生成",
         "generateAll": "すべて生成",
         "addScene": "シーン追加",
+        "defaultName": "シーン {{num}}",
         "noScenes": "シーンがありません",
         "noScenesDesc": "最初のシーンを追加して始めましょう",
         "preset": "プリセット選択...",
@@ -379,7 +380,8 @@
         "renameDesc": "選択した画像の新しい名前を入力してください。",
         "dropHint": "画像をドラッグ＆ドロップして追加",
         "createStack": "スタック作成",
-        "unstack": "スタック解除"
+        "unstack": "スタック解除",
+        "stackCount": "{{count}}枚"
     },
     "settingsPage": {
         "title": "設定",

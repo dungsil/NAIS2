@@ -135,6 +135,7 @@ export function PromptPanel() {
     const [promptGenOpen, setPromptGenOpen] = useState(false)
     const [fragmentDialogOpen, setFragmentDialogOpen] = useState(false)
     const [characterPanelOpen, setCharacterPanelOpen] = useState(false)
+    const [imageRefDialogOpen, setImageRefDialogOpen] = useState(false)
     const [parameterDialogOpen, setParameterDialogOpen] = useState(false)
 
     // 전역 단축키 이벤트 수신
@@ -143,17 +144,20 @@ export function PromptPanel() {
         const handleOpenFragment = () => setFragmentDialogOpen(prev => !prev)
         const handleOpenParameters = () => setParameterDialogOpen(prev => !prev)
         const handleOpenCharacterPrompt = () => setCharacterPanelOpen(prev => !prev)
+        const handleOpenImageReference = () => setImageRefDialogOpen(prev => !prev)
 
         window.addEventListener(SHORTCUT_EVENTS.OPEN_PROMPT_GENERATOR, handleOpenPromptGen)
         window.addEventListener(SHORTCUT_EVENTS.OPEN_FRAGMENT_DIALOG, handleOpenFragment)
         window.addEventListener(SHORTCUT_EVENTS.OPEN_PARAMETER_SETTINGS, handleOpenParameters)
         window.addEventListener(SHORTCUT_EVENTS.OPEN_CHARACTER_PROMPT, handleOpenCharacterPrompt)
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_IMAGE_REFERENCE, handleOpenImageReference)
 
         return () => {
             window.removeEventListener(SHORTCUT_EVENTS.OPEN_PROMPT_GENERATOR, handleOpenPromptGen)
             window.removeEventListener(SHORTCUT_EVENTS.OPEN_FRAGMENT_DIALOG, handleOpenFragment)
             window.removeEventListener(SHORTCUT_EVENTS.OPEN_PARAMETER_SETTINGS, handleOpenParameters)
             window.removeEventListener(SHORTCUT_EVENTS.OPEN_CHARACTER_PROMPT, handleOpenCharacterPrompt)
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_IMAGE_REFERENCE, handleOpenImageReference)
         }
     }, [])
 
@@ -268,7 +272,7 @@ export function PromptPanel() {
 
             {/* Quick Actions & Parameters Button */}
             <div className="flex gap-2 mb-3">
-                <CharacterSettingsDialog />
+                <CharacterSettingsDialog open={imageRefDialogOpen} onOpenChange={setImageRefDialogOpen} />
                 {/* Character Prompt Toggle Button */}
                 <Button
                     variant={characterPanelOpen ? "default" : "outline"}

@@ -26,10 +26,9 @@ import { useTranslation } from 'react-i18next'
 import { mkdir, exists, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { pictureDir, join } from '@tauri-apps/api/path'
 import { toast } from '@/components/ui/use-toast'
-import { ImagePlus, X, Grid3x3, Edit3, Trash2, Layers, ArrowLeft, CheckSquare, Square, FolderOpen } from 'lucide-react'
+import { ImagePlus, X, Grid3x3, Edit3, Trash2, Layers, ArrowLeft, CheckSquare, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/settings-store'
-import { cn } from '@/lib/utils'
 
 const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
@@ -64,7 +63,7 @@ export default function Library() {
         toggleItemSelection,
         selectItemRange,
         selectAllItems,
-        clearSelection,
+        clearSelection: _clearSelection,
         deleteSelectedItems,
         lastSelectedItemId,
         // Stack
@@ -78,8 +77,8 @@ export default function Library() {
     const [isDraggingFile, setIsDraggingFile] = useState(false)
 
     // Get current view items (main library or inside a stack)
-    const currentStack = currentStackId ? items.find(i => i.id === currentStackId) : null
-    const viewItems = currentStack?.stackItems || items.filter(i => !currentStackId)
+    const currentStack = currentStackId ? items.find(item => item.id === currentStackId) : null
+    const viewItems = currentStack?.stackItems || items.filter(() => !currentStackId)
 
     // Dialog States
     const [renameDialogOpen, setRenameDialogOpen] = useState(false)

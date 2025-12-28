@@ -868,7 +868,7 @@ interface ShortcutRowProps {
     onCancel: () => void
     onReset: () => void
     onKeyRecord: (binding: KeyBinding) => void
-    t: (key: string, fallback?: string) => string
+    t: ReturnType<typeof useTranslation>['t']
 }
 
 function ShortcutRow({ action, binding, allBindings, isEditing, recordedBinding, onStartEdit, onSave, onCancel, onReset, onKeyRecord, t }: ShortcutRowProps) {

@@ -17,7 +17,7 @@ i18n
     .use(initReactI18next)
     .init({
         resources,
-        fallbackLng: 'ko',
+        fallbackLng: 'en', // 지원하지 않는 언어는 영어로 fallback
         supportedLngs: ['ko', 'en', 'ja'],
 
         interpolation: {
@@ -25,8 +25,9 @@ i18n
         },
 
         detection: {
-            order: ['localStorage', 'navigator'],
+            order: ['localStorage', 'navigator'], // localStorage 우선, 그 다음 시스템 언어
             caches: ['localStorage'],
+            lookupLocalStorage: 'i18nextLng',
         },
     })
 

@@ -184,9 +184,11 @@ export const useLibraryStore = create<LibraryState>()(
                 const firstSelected = selectedItems[0]
 
                 // Create a new stack item
+                // Note: Stack name uses first item's name + count format
+                // The display format will be handled by UI components with i18n
                 const stackItem: LibraryItem = {
                     id: crypto.randomUUID(),
-                    name: `${firstSelected.name} 외 ${selectedItems.length - 1}개`,
+                    name: firstSelected.name,
                     path: firstSelected.path, // Use first item's path as thumbnail
                     width: firstSelected.width,
                     height: firstSelected.height,
