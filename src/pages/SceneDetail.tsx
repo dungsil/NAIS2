@@ -546,7 +546,12 @@ function SceneImageCard({
             onLoadMetadata={onLoadMetadata}
         >
             <div
-                className="relative group aspect-[2/3] rounded-xl overflow-hidden bg-muted/30 border border-border/50 hover:border-primary/50 transition-all duration-300 shadow-sm cursor-pointer"
+                className={cn(
+                    "relative group aspect-[2/3] rounded-xl overflow-hidden bg-muted/30 border-2 transition-all duration-300 shadow-sm cursor-pointer",
+                    image.isFavorite 
+                        ? "border-yellow-500 ring-2 ring-yellow-500/30" 
+                        : "border-border/50 hover:border-primary/50"
+                )}
                 onClick={() => imgSrc && onImageClick?.(imgSrc)}
             >
                 {/* Image */}

@@ -36,13 +36,24 @@ export function ExportDialog({ open, onOpenChange, activePresetName, scenes }: E
         try {
             const zip = new JSZip()
             let count = 0
-            const total = scenes.reduce((acc, scene) => acc + (scene.images.length > 0 ? 1 : 0), 0)
+            
+            // Calculate total: each scene exports 1 image OR all favorites if multiple
+            const total = scenes.reduce((acc, scene) => {
+                const favorites = scene.images.filter(img => img.isFavorite)
+                if (favorites.length > 0) return acc + favorites.length
+                return acc + (scene.images.length > 0 ? 1 : 0)
+            }, 0)
 
             for (const scene of scenes) {
-                const favorite = scene.images.find(img => img.isFavorite)
-                const targetImage = favorite || (scene.images.length > 0 ? scene.images[0] : null)
+                const favorites = scene.images.filter(img => img.isFavorite)
+                
+                // If there are favorites, export all of them; otherwise export first image
+                const imagesToExport = favorites.length > 0 
+                    ? favorites 
+                    : (scene.images.length > 0 ? [scene.images[0]] : [])
 
-                if (targetImage) {
+                for (let imgIndex = 0; imgIndex < imagesToExport.length; imgIndex++) {
+                    const targetImage = imagesToExport[imgIndex]
                     let imageData: Uint8Array | null = null
 
                     // 1. Get Image Data (Uint8Array)
@@ -96,8 +107,10 @@ export function ExportDialog({ open, onOpenChange, activePresetName, scenes }: E
                     if (finalBlob) {
                         const safeName = scene.name.replace(/[<>:"/\\|?*]/g, '_').trim() || `Scene_${count}`
                         const ext = format === 'jpeg' ? 'jpg' : format
+                        // Add suffix if multiple favorites (_1, _2, etc.)
+                        const suffix = imagesToExport.length > 1 ? `_${imgIndex + 1}` : ''
                         const arrayBuffer = await finalBlob.arrayBuffer()
-                        zip.file(`${safeName}.${ext}`, new Uint8Array(arrayBuffer) as any)
+                        zip.file(`${safeName}${suffix}.${ext}`, new Uint8Array(arrayBuffer) as any)
                         count++
                         setProgress(Math.round((count / total) * 100))
                     }
