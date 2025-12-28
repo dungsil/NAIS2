@@ -25,6 +25,9 @@ interface CharacterState {
     clearAll: () => void
 }
 
+import { createJSONStorage } from 'zustand/middleware'
+import { indexedDBStorage } from '@/lib/indexed-db'
+
 export const useCharacterStore = create<CharacterState>()(
     persist(
         (set) => ({
@@ -53,18 +56,21 @@ export const useCharacterStore = create<CharacterState>()(
                 characterImages: state.characterImages.filter(img => img.id !== id)
             })),
 
-            addVibeImage: (base64, encodedVibe, informationExtracted, strength) => set((state) => ({
-                vibeImages: [
-                    ...state.vibeImages,
-                    {
-                        id: Date.now().toString(),
-                        base64,
-                        encodedVibe,
-                        informationExtracted: informationExtracted ?? 1.0,
-                        strength: strength ?? 0.6
-                    }
-                ]
-            })),
+            addVibeImage: (base64, encodedVibe, informationExtracted, strength) => {
+                console.log('[CharacterStore] addVibeImage called', { encodedVibe: !!encodedVibe })
+                set((state) => ({
+                    vibeImages: [
+                        ...state.vibeImages,
+                        {
+                            id: Date.now().toString(),
+                            base64,
+                            encodedVibe,
+                            informationExtracted: informationExtracted ?? 1.0,
+                            strength: strength ?? 0.6
+                        }
+                    ]
+                }))
+            },
 
             updateVibeImage: (id, updates) => set((state) => ({
                 vibeImages: state.vibeImages.map(img =>
@@ -80,14 +86,8 @@ export const useCharacterStore = create<CharacterState>()(
         }),
         {
             name: 'nais2-character-store',
+            storage: createJSONStorage(() => indexedDBStorage),
             partialize: (state) => ({
-                // Persist images?? Might be heavy for localStorage if many larger images.
-                // User requirement implies "pop-up" settings, maybe expectation is per-session?
-                // But usually users want to keep refs.
-                // LocalStorage has 5MB limit. Base64 images are large.
-                // We should probably NOT persist the base64 data if possible, or warn.
-                // Or maybe just persisted is fine for a few images.
-                // Let's persist for now, but be aware.
                 characterImages: state.characterImages,
                 vibeImages: state.vibeImages
             })

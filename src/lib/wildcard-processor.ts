@@ -1,3 +1,5 @@
+import { useWildcardStore, normalizeWildcardPath } from '@/stores/wildcard-store'
+
 /**
  * Wildcard Processor
  * 프롬프트에서 와일드카드를 랜덤 선택으로 치환
@@ -6,7 +8,59 @@
  * 1. 괄호 형식 (권장): (option1/option2/option3)
  *    - 각 옵션에 쉼표 포함 가능: (white hair, blue eyes/red hair, purple eyes)
  * 2. 단순 형식: red/blue/green (쉼표로 구분된 단일 태그 내에서만)
+ * 3. 파일 기반: <filename> 또는 <folder/filename>
+ *    - 와일드카드 스토어에서 파일 내용을 가져와 랜덤 선택
+ * 4. 인라인: <option1|option2|option3>
+ *    - 파일 없이 인라인으로 옵션 정의
+ * 5. 순차 모드: <*filename>
+ *    - 랜덤이 아닌 순서대로 선택 (배치 생성용)
  */
+
+/**
+ * 파일 기반 와일드카드 처리
+ * "<hair>" → 와일드카드 파일에서 랜덤 줄 선택
+ * "<*hair>" → 와일드카드 파일에서 순차적으로 줄 선택
+ * "<red|blue|green>" → 인라인 옵션에서 랜덤 선택
+ */
+function processFileWildcards(prompt: string): string {
+    // <...> 패턴 찾기 (중첩 불가)
+    const filePattern = /<([^<>]+)>/g
+
+    return prompt.replace(filePattern, (_match, content: string) => {
+        const trimmed = content.trim()
+
+        // 1. 인라인 와일드카드: <option1|option2|option3>
+        if (trimmed.includes('|')) {
+            const options = trimmed.split('|').map(o => o.trim()).filter(o => o.length > 0)
+            if (options.length > 0) {
+                const randomIndex = Math.floor(Math.random() * options.length)
+                return options[randomIndex]
+            }
+            return _match // 유효하지 않으면 원본 반환
+        }
+
+        // 2. 순차 모드: <*filename>
+        const isSequential = trimmed.startsWith('*')
+        const path = normalizeWildcardPath(isSequential ? trimmed.slice(1) : trimmed)
+
+        if (!path) return _match
+
+        // 와일드카드 스토어에서 라인 가져오기
+        const store = useWildcardStore.getState()
+        const line = isSequential
+            ? store.getSequentialLine(path)
+            : store.getRandomLine(path)
+
+        if (line === null) {
+            // 파일을 찾을 수 없으면 원본 유지
+            console.warn(`Wildcard not found: ${path}`)
+            return _match
+        }
+
+        // 재귀적으로 중첩된 와일드카드 처리
+        return processFileWildcards(line)
+    })
+}
 
 /**
  * 괄호로 감싸진 와일드카드 처리
@@ -72,17 +126,24 @@ function processSimpleWildcards(prompt: string): string {
  * - (white hair, blue eyes/red hair, purple eyes) → 세트 중 하나 선택
  * - red/blue/green_hair → 단순 옵션 중 하나 선택
  * - (long hair/short hair), smile → 괄호 내 선택 + 일반 태그
+ * - <hair> → 와일드카드 파일에서 랜덤 선택
+ * - <*hair> → 와일드카드 파일에서 순차 선택
+ * - <red|blue|green> → 인라인 옵션에서 랜덤 선택
  */
 export function processWildcards(prompt: string): string {
     if (!prompt) return prompt
 
     let result = prompt
 
-    // 1단계: 괄호 형식 와일드카드 처리 (우선 - 쉼표 포함 옵션 지원)
+    // 1단계: 파일 기반 와일드카드 처리 (최우선)
+    // <filename>, <*filename>, <option1|option2>
+    result = processFileWildcards(result)
+
+    // 2단계: 괄호 형식 와일드카드 처리 (쉼표 포함 옵션 지원)
     // (white hair, blue eyes/red hair, purple eyes) → 선택된 세트
     result = processParenthesisWildcards(result)
 
-    // 2단계: 단순 와일드카드 처리 (공백 없는 단일 태그만)
+    // 3단계: 단순 와일드카드 처리 (공백 없는 단일 태그만)
     // red/blue/green → 선택된 값
     result = processSimpleWildcards(result)
 
@@ -94,6 +155,9 @@ export function processWildcards(prompt: string): string {
  */
 export function hasWildcards(prompt: string): boolean {
     if (!prompt) return false
+
+    // 파일 기반 와일드카드 체크 <...>
+    if (/<[^<>]+>/.test(prompt)) return true
 
     // 괄호 형식 체크
     const parenPattern = /\([^()]+\/[^()]+\)/
@@ -112,4 +176,12 @@ export function hasWildcards(prompt: string): boolean {
     }
 
     return false
+}
+
+/**
+ * 순차 와일드카드 카운터 리셋
+ * @param path 특정 와일드카드 경로 (없으면 전체 리셋)
+ */
+export function resetWildcardCounters(path?: string): void {
+    useWildcardStore.getState().resetSequentialCounter(path)
 }

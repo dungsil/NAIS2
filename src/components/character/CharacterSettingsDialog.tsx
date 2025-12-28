@@ -260,16 +260,17 @@ export function CharacterSettingsDialog() {
                                 >
                                     <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                                     <p className="text-sm text-muted-foreground font-medium">{t('characterDialog.uploadCharacter')}</p>
-                                    <input
-                                        type="file"
-                                        multiple={false}
-                                        accept="image/*"
-                                        className="hidden"
-                                        ref={charInputRef}
-                                        onChange={(e) => handleFileUpload(e, 'character')}
-                                    />
                                 </div>
                             )}
+                            <input
+                                type="file"
+                                multiple={false}
+                                accept="image/*"
+                                className="hidden"
+                                ref={charInputRef}
+                                onChange={(e) => handleFileUpload(e, 'character')}
+                            />
+
                             <CharacterImageList
                                 images={characterImages}
                                 onRemove={removeCharacterImage}
@@ -295,15 +296,15 @@ export function CharacterSettingsDialog() {
                                 >
                                     <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                                     <p className="text-sm text-muted-foreground font-medium">{t('characterDialog.uploadVibe')}</p>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        className="hidden"
-                                        ref={vibeInputRef}
-                                        onChange={(e) => handleFileUpload(e, 'vibe')}
-                                    />
                                 </div>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    className="hidden"
+                                    ref={vibeInputRef}
+                                    onChange={(e) => handleFileUpload(e, 'vibe')}
+                                />
                                 <VibeImageList
                                     images={vibeImages}
                                     onRemove={removeVibeImage}

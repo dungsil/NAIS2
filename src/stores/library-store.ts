@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { indexedDBStorage } from '@/lib/indexed-db'
 
 export interface LibraryItem {
     id: string
@@ -53,6 +54,7 @@ export const useLibraryStore = create<LibraryState>()(
         }),
         {
             name: 'nais-library-storage',
+            storage: createJSONStorage(() => indexedDBStorage),
             partialize: (state) => ({ items: state.items, gridColumns: state.gridColumns }), // Don't persist draggedSource
         }
     )

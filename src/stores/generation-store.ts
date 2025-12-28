@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { indexedDBStorage } from '@/lib/indexed-db'
 import { useAuthStore } from './auth-store'
 import { useSettingsStore } from './settings-store'
 import { generateImage, generateImageStream } from '@/services/novelai-api'
@@ -536,6 +537,7 @@ export const useGenerationStore = create<GenerationState>()(
         }),
         {
             name: 'nais2-generation',
+            storage: createJSONStorage(() => indexedDBStorage),
             partialize: (state) => ({
                 // Prompts
                 basePrompt: state.basePrompt,
@@ -567,7 +569,8 @@ export const useGenerationStore = create<GenerationState>()(
                 strength: state.strength,
                 noise: state.noise,
                 inpaintingPrompt: state.inpaintingPrompt,
-                // NOTE: history is NOT persisted to avoid localStorage quota issues
+                // History IS now persisted thanks to IndexedDB
+                history: state.history,
             }),
         }
     )

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { FragmentDialog } from '@/components/fragments/FragmentDialog'
+import { FragmentPromptDialog } from '@/components/fragments/FragmentPromptDialog'
 import { SourceImagePanel } from '@/components/layout/SourceImagePanel'
 import { CharacterSettingsDialog } from '@/components/character/CharacterSettingsDialog'
 import { CharacterPromptDialog } from '@/components/character/CharacterPromptDialog'
@@ -39,6 +39,7 @@ import {
     SlidersHorizontal,
     Cpu,
     Film, // Added for Scene Mode icon
+    Puzzle,
 } from 'lucide-react'
 import GeminiIcon from '@/assets/gemini-color.svg'
 import { useGenerationStore, AVAILABLE_MODELS } from '@/stores/generation-store'
@@ -126,6 +127,7 @@ export function PromptPanel() {
     const [newResWidth, setNewResWidth] = useState(1920)
     const [newResHeight, setNewResHeight] = useState(1080)
     const [promptGenOpen, setPromptGenOpen] = useState(false)
+    const [fragmentDialogOpen, setFragmentDialogOpen] = useState(false)
 
     const handleRandomSeed = () => {
         if (!seedLocked) {
@@ -234,7 +236,16 @@ export function PromptPanel() {
             <div className="flex gap-2 mb-3">
                 <CharacterSettingsDialog />
                 <CharacterPromptDialog />
-                <FragmentDialog />
+                {/* Fragment Prompt Button */}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs rounded-xl h-9"
+                    onClick={() => setFragmentDialogOpen(true)}
+                >
+                    <Puzzle className="h-3.5 w-3.5 mr-1.5" />
+                    {t('prompt.fragment')}
+                </Button>
                 {/* AI Prompt Generator Button */}
                 <Button
                     variant="outline"
@@ -564,6 +575,12 @@ export function PromptPanel() {
                     />
                 </div>
             </div>
+
+            {/* Fragment Prompt Dialog */}
+            <FragmentPromptDialog
+                open={fragmentDialogOpen}
+                onOpenChange={setFragmentDialogOpen}
+            />
         </div>
     )
 }

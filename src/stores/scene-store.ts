@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { indexedDBStorage } from '@/lib/indexed-db'
 
 export interface SceneImage {
     id: string
@@ -741,6 +742,7 @@ export const useSceneStore = create<SceneState>()(
         }),
         {
             name: 'nais2-scenes',
+            storage: createJSONStorage(() => indexedDBStorage),
             onRehydrateStorage: () => (state) => {
                 if (state && !state.presets.find(p => p.id === DEFAULT_PRESET_ID)) {
                     state.presets = [createDefaultPreset(), ...state.presets]
