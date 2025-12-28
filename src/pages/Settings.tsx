@@ -374,8 +374,20 @@ export default function Settings() {
                                         </Button>
                                     </div>
 
-                                    {/* Pending Update Install Section */}
-                                    {pendingUpdate && (
+                                    {/* Pending Update Install Section - only show if pending version is newer */}
+                                    {pendingUpdate && appVersion && (() => {
+                                        // Compare versions
+                                        const current = appVersion.replace(/^v/, '').split('.').map(Number)
+                                        const pending = pendingUpdate.version.replace(/^v/, '').split('.').map(Number)
+                                        let isNewer = false
+                                        for (let i = 0; i < Math.max(current.length, pending.length); i++) {
+                                            const c = current[i] || 0
+                                            const p = pending[i] || 0
+                                            if (p > c) { isNewer = true; break }
+                                            if (p < c) break
+                                        }
+                                        if (!isNewer) return null
+                                        return (
                                         <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
                                             <div className="flex items-center gap-2">
                                                 <Sparkles className="h-4 w-4 text-green-500" />
@@ -404,7 +416,8 @@ export default function Settings() {
                                                 {t('update.installNow', '지금 설치')}
                                             </Button>
                                         </div>
-                                    )}
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         </section>

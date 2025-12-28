@@ -1,10 +1,24 @@
 import { useEffect } from 'react'
 import { check, Update } from '@tauri-apps/plugin-updater'
+import { getVersion } from '@tauri-apps/api/app'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Download, RefreshCw, Sparkles } from 'lucide-react'
 import { useUpdateStore, setCurrentUpdateObject, installPendingUpdate } from '@/stores/update-store'
+
+// Compare semver versions: returns 1 if a > b, -1 if a < b, 0 if equal
+function compareVersions(a: string, b: string): number {
+    const partsA = a.replace(/^v/, '').split('.').map(Number)
+    const partsB = b.replace(/^v/, '').split('.').map(Number)
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+        const numA = partsA[i] || 0
+        const numB = partsB[i] || 0
+        if (numA > numB) return 1
+        if (numA < numB) return -1
+    }
+    return 0
+}
 
 export function useUpdateChecker() {
     const { t } = useTranslation()
@@ -13,7 +27,8 @@ export function useUpdateChecker() {
         isDownloading,
         setPendingUpdate,
         setIsDownloading,
-        setDownloadProgress
+        setDownloadProgress,
+        clearPendingUpdate
     } = useUpdateStore()
 
     // Function to download update (but not install)
@@ -88,6 +103,17 @@ export function useUpdateChecker() {
     useEffect(() => {
         const checkForUpdates = async () => {
             try {
+                // First, check if pendingUpdate is outdated (already installed)
+                if (pendingUpdate) {
+                    const currentVersion = await getVersion()
+                    if (compareVersions(currentVersion, pendingUpdate.version) >= 0) {
+                        // Current version is same or newer than pending, clear it
+                        console.log(`[Update] Clearing outdated pendingUpdate: ${pendingUpdate.version} (current: ${currentVersion})`)
+                        clearPendingUpdate()
+                        return // No need to check for updates, we just updated
+                    }
+                }
+
                 const update = await check()
                 if (update) {
                     // Check if we already have this version downloaded
