@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { FragmentPromptDialog } from '@/components/fragments/FragmentPromptDialog'
 import { SourceImagePanel } from '@/components/layout/SourceImagePanel'
 import { CharacterSettingsDialog } from '@/components/character/CharacterSettingsDialog'
-import { CharacterPromptDialog } from '@/components/character/CharacterPromptDialog'
+import { CharacterPromptPanel } from '@/components/character/CharacterPromptPanel'
 import { PromptGeneratorDialog } from '@/components/prompt/PromptGeneratorDialog'
 import { AutocompleteTextarea } from '@/components/ui/AutocompleteTextarea'
 import { Input } from '@/components/ui/input'
@@ -38,13 +38,15 @@ import {
     Unlock,
     SlidersHorizontal,
     Cpu,
-    Film, // Added for Scene Mode icon
+    Film,
     Puzzle,
+    Users,
 } from 'lucide-react'
 import GeminiIcon from '@/assets/gemini-color.svg'
 import { useGenerationStore, AVAILABLE_MODELS } from '@/stores/generation-store'
 import { useSceneStore } from '@/stores/scene-store'
 import { useSettingsStore } from '@/stores/settings-store'
+import { useCharacterPromptStore } from '@/stores/character-prompt-store'
 import { ResolutionSelector } from '@/components/ui/ResolutionSelector'
 
 const SAMPLERS = [
@@ -121,6 +123,9 @@ export function PromptPanel() {
     const addCustomResolution = useSettingsStore(state => state.addCustomResolution)
     const promptFontSize = useSettingsStore(state => state.promptFontSize)
 
+    // Zustand 선택적 구독 - characterPromptStore
+    const characterCount = useCharacterPromptStore(state => state.characters.filter(c => c.enabled).length)
+
     // Custom resolution dialog state
     const [customDialogOpen, setCustomDialogOpen] = useState(false)
     const [newResLabel, setNewResLabel] = useState('')
@@ -128,6 +133,7 @@ export function PromptPanel() {
     const [newResHeight, setNewResHeight] = useState(1080)
     const [promptGenOpen, setPromptGenOpen] = useState(false)
     const [fragmentDialogOpen, setFragmentDialogOpen] = useState(false)
+    const [characterPanelOpen, setCharacterPanelOpen] = useState(false)
 
     const handleRandomSeed = () => {
         if (!seedLocked) {
@@ -181,8 +187,14 @@ export function PromptPanel() {
             {/* Source Image Panel (I2I/Inpaint Mode) */}
             <SourceImagePanel />
 
-            {/* Prompt Inputs Area (Flex Grow, No Scroll on Container) */}
-            <div className="flex-1 flex flex-col min-h-0 gap-2 mb-2">
+            {/* Prompt Inputs Area (Flex Grow, No Scroll on Container) - relative 컨테이너 */}
+            <div className="flex-1 flex flex-col min-h-0 gap-2 mb-2 relative">
+                {/* Character Prompt Panel (Accordion Style) - 프롬프트 영역 위에 오버레이 */}
+                <CharacterPromptPanel
+                    open={characterPanelOpen}
+                    onOpenChange={setCharacterPanelOpen}
+                />
+
                 {/* Base Prompt - 30% */}
                 <div className="flex flex-col min-h-0 basis-[30%]">
                     <label className="text-xs font-medium text-muted-foreground mb-1">{t('prompt.base')}</label>
@@ -235,7 +247,29 @@ export function PromptPanel() {
             {/* Quick Actions & Parameters Button */}
             <div className="flex gap-2 mb-3">
                 <CharacterSettingsDialog />
-                <CharacterPromptDialog />
+                {/* Character Prompt Toggle Button */}
+                <Button
+                    variant={characterPanelOpen ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                        "flex-1 text-xs rounded-xl h-9 relative",
+                        characterPanelOpen && "bg-primary text-primary-foreground"
+                    )}
+                    onClick={() => setCharacterPanelOpen(!characterPanelOpen)}
+                >
+                    <Users className="h-3.5 w-3.5 mr-1.5" />
+                    {t('prompt.character', '캐릭터')}
+                    {characterCount > 0 && (
+                        <div className={cn(
+                            "absolute -top-1 -right-1 text-[9px] font-bold rounded-md px-1 py-0.5 min-w-[16px] h-[16px] flex items-center justify-center shadow-sm",
+                            characterPanelOpen
+                                ? "bg-primary-foreground text-primary"
+                                : "bg-primary text-primary-foreground"
+                        )}>
+                            {characterCount}
+                        </div>
+                    )}
+                </Button>
                 {/* Fragment Prompt Button */}
                 <Button
                     variant="outline"

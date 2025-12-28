@@ -51,7 +51,7 @@ interface SceneState {
 
     // Actions - Queue
     setQueueCount: (presetId: string, sceneId: string, count: number) => void
-    incrementQueue: (presetId: string, sceneId: string) => void
+    incrementQueue: (presetId: string, sceneId: string, count?: number) => void
     decrementQueue: (presetId: string, sceneId: string) => void
     addAllToQueue: (presetId: string, count?: number) => void
     clearAllQueue: (presetId: string) => void
@@ -108,6 +108,10 @@ interface SceneState {
     // Grid Layout
     gridColumns: number
     setGridColumns: (columns: number) => void
+
+    // Scroll Position (for returning from detail page)
+    scrollPosition: number
+    setScrollPosition: (position: number) => void
 }
 
 const DEFAULT_PRESET_ID = 'scene-default'
@@ -294,11 +298,11 @@ export const useSceneStore = create<SceneState>()(
                 }))
             },
 
-            incrementQueue: (presetId, sceneId) => {
+            incrementQueue: (presetId, sceneId, count = 1) => {
                 const preset = get().presets.find(p => p.id === presetId)
                 const scene = preset?.scenes.find(s => s.id === sceneId)
                 if (scene) {
-                    get().setQueueCount(presetId, sceneId, scene.queueCount + 1)
+                    get().setQueueCount(presetId, sceneId, scene.queueCount + count)
                 }
             },
 
@@ -739,10 +743,23 @@ export const useSceneStore = create<SceneState>()(
             // Grid Layout
             gridColumns: 4,
             setGridColumns: (columns) => set({ gridColumns: columns }),
+
+            // Scroll Position
+            scrollPosition: 0,
+            setScrollPosition: (position) => set({ scrollPosition: position }),
         }),
         {
             name: 'nais2-scenes',
             storage: createJSONStorage(() => indexedDBStorage),
+            partialize: (state) => ({
+                // Exclude queueCount from persistence for faster UI updates
+                presets: state.presets.map(p => ({
+                    ...p,
+                    scenes: p.scenes.map(s => ({ ...s, queueCount: 0 }))
+                })),
+                activePresetId: state.activePresetId,
+                gridColumns: state.gridColumns,
+            }),
             onRehydrateStorage: () => (state) => {
                 if (state && !state.presets.find(p => p.id === DEFAULT_PRESET_ID)) {
                     state.presets = [createDefaultPreset(), ...state.presets]

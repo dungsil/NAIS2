@@ -61,6 +61,7 @@ export interface GenerationParams {
         enabled: boolean
         position: { x: number, y: number }
     }[]
+    characterPositionEnabled?: boolean // 위치 기능 활성화 여부
 
     // I2I (Image-to-Image) Parameters
     sourceImage?: string    // Base64 encoded source image
@@ -515,23 +516,29 @@ export async function generateImage(
 
         // Add character prompts if present
         if (params.characterPrompts && params.characterPrompts.length > 0) {
+            const usePositions = params.characterPositionEnabled ?? false
             for (const char of params.characterPrompts) {
                 if (char.enabled && char.prompt.trim()) {
                     apiParameters.v4_prompt.caption.char_captions.push({
                         char_caption: char.prompt,
-                        centers: [{ x: char.position.x, y: char.position.y }]
+                        // 위치 활성화되었을 때만 position 사용, 아니면 중앙(0.5, 0.5)
+                        centers: usePositions 
+                            ? [{ x: char.position.x, y: char.position.y }]
+                            : [{ x: 0.5, y: 0.5 }]
                     })
                     // Also add negative if exists
                     if (char.negative.trim()) {
                         apiParameters.v4_negative_prompt.caption.char_captions.push({
                             char_caption: char.negative,
-                            centers: [{ x: char.position.x, y: char.position.y }]
+                            centers: usePositions
+                                ? [{ x: char.position.x, y: char.position.y }]
+                                : [{ x: 0.5, y: 0.5 }]
                         })
                     }
                 }
             }
-            // Enable coords if any character prompts exist
-            if (apiParameters.v4_prompt.caption.char_captions.length > 0) {
+            // Enable coords only if position feature is enabled
+            if (apiParameters.v4_prompt.caption.char_captions.length > 0 && usePositions) {
                 apiParameters.v4_prompt.use_coords = true
                 apiParameters.v4_negative_prompt.use_coords = true
                 // @ts-ignore
@@ -906,23 +913,29 @@ export async function generateImageStream(
 
         // Add character prompts if present
         if (params.characterPrompts && params.characterPrompts.length > 0) {
+            const usePositions = params.characterPositionEnabled ?? false
             for (const char of params.characterPrompts) {
                 if (char.enabled && char.prompt.trim()) {
                     apiParameters.v4_prompt.caption.char_captions.push({
                         char_caption: char.prompt,
-                        centers: [{ x: char.position.x, y: char.position.y }]
+                        // 위치 활성화되었을 때만 position 사용, 아니면 중앙(0.5, 0.5)
+                        centers: usePositions 
+                            ? [{ x: char.position.x, y: char.position.y }]
+                            : [{ x: 0.5, y: 0.5 }]
                     })
                     // Also add negative if exists
                     if (char.negative.trim()) {
                         apiParameters.v4_negative_prompt.caption.char_captions.push({
                             char_caption: char.negative,
-                            centers: [{ x: char.position.x, y: char.position.y }]
+                            centers: usePositions
+                                ? [{ x: char.position.x, y: char.position.y }]
+                                : [{ x: 0.5, y: 0.5 }]
                         })
                     }
                 }
             }
-            // Enable coords if any character prompts exist
-            if (apiParameters.v4_prompt.caption.char_captions.length > 0) {
+            // Enable coords only if position feature is enabled
+            if (apiParameters.v4_prompt.caption.char_captions.length > 0 && usePositions) {
                 apiParameters.v4_prompt.use_coords = true
                 apiParameters.v4_negative_prompt.use_coords = true
                 apiParameters.use_coords = true

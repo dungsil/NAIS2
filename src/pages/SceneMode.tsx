@@ -68,6 +68,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSceneStore } from '@/stores/scene-store'
+import { useGenerationStore } from '@/stores/generation-store'
 import { toast } from '@/components/ui/use-toast'
 import { readFile, writeFile } from '@tauri-apps/plugin-fs'
 import { save } from '@tauri-apps/plugin-dialog'
@@ -97,6 +98,11 @@ export default function SceneMode() {
     const deletePreset = useSceneStore(s => s.deletePreset)
     const activePreset = useSceneStore(s => s.presets.find(p => p.id === s.activePresetId))
     const scenes = activePreset?.scenes || []
+    const scrollPosition = useSceneStore(s => s.scrollPosition)
+    const setScrollPosition = useSceneStore(s => s.setScrollPosition)
+    
+    // Scroll container ref
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
     const gridColumns = useSceneStore(s => s.gridColumns)
     const setGridColumns = useSceneStore(s => s.setGridColumns)
 
@@ -110,6 +116,7 @@ export default function SceneMode() {
     const addAllToQueue = useSceneStore(s => s.addAllToQueue)
     const clearAllQueue = useSceneStore(s => s.clearAllQueue)
     const getTotalQueueCount = useSceneStore(s => s.getTotalQueueCount)
+    const batchCount = useGenerationStore(s => s.batchCount)
 
     const totalQueue = activePresetId ? getTotalQueueCount(activePresetId) : 0
 
@@ -144,6 +151,13 @@ export default function SceneMode() {
     // Left empty for now as logic moved to hook
 
     // Note: useSceneGeneration() is now called at App level for persistence across navigation
+
+    // Restore scroll position when returning from detail page
+    useEffect(() => {
+        if (scrollContainerRef.current && scrollPosition > 0) {
+            scrollContainerRef.current.scrollTop = scrollPosition
+        }
+    }, []) // Only on mount
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -381,29 +395,26 @@ export default function SceneMode() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">{t('scene.title')}</h1>
-                        <p className="text-muted-foreground text-sm">{t('scene.description')}</p>
                     </div>
                     <div className="flex gap-2">
                         {/* Edit Mode Toggle Button */}
-                        <Button variant="outline" size="sm" className="rounded-xl h-10 border-white/10 hover:bg-white/5" onClick={() => setEditMode(true)} disabled={scenes.length === 0 || isGenerating}>
-                            <Edit3 className="mr-2 h-4 w-4" />
-                            {t('scene.editMode', '편집 모드')}
+                        <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-white/10 hover:bg-white/5" onClick={() => setEditMode(true)} disabled={scenes.length === 0 || isGenerating} title={t('scene.editMode', '편집 모드')}>
+                            <Edit3 className="h-4 w-4" />
                         </Button>
                         <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-white/5">
-                            <Button variant="ghost" size="sm" className="h-8 text-xs hover:bg-white/10" onClick={() => activePresetId && addAllToQueue(activePresetId, 1)} disabled={scenes.length === 0 || isGenerating}>
-                                <ListPlus className="mr-2 h-3.5 w-3.5" /> {t('scene.addAllQueue')}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={() => activePresetId && addAllToQueue(activePresetId, batchCount)} disabled={scenes.length === 0 || isGenerating} title={t('scene.addAllQueue')}>
+                                <ListPlus className="h-4 w-4" />
                             </Button>
                             <div className="w-px h-4 bg-white/10 mx-1" />
-                            <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => activePresetId && clearAllQueue(activePresetId)} disabled={totalQueue === 0 || isGenerating}>
-                                <ListX className="mr-2 h-3.5 w-3.5" /> {t('scene.clearAllQueue')}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => activePresetId && clearAllQueue(activePresetId)} disabled={totalQueue === 0 || isGenerating} title={t('scene.clearAllQueue')}>
+                                <ListX className="h-4 w-4" />
                             </Button>
                         </div>
-                        <Button variant="outline" size="sm" className="rounded-xl h-10 border-white/10 hover:bg-white/5" onClick={handleExportJson} disabled={!activePreset || isGenerating}>
-                            <Copy className="mr-2 h-4 w-4" /> JSON
+                        <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-white/10 hover:bg-white/5" onClick={handleExportJson} disabled={!activePreset || isGenerating} title="JSON">
+                            <Copy className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="rounded-xl h-10 border-white/10 hover:bg-white/5" onClick={handleExportZip} disabled={scenes.length === 0}>
-                            <Download className="mr-2 h-4 w-4" />
-                            {t('scene.exportZip')}
+                        <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-white/10 hover:bg-white/5" onClick={handleExportZip} disabled={scenes.length === 0} title={t('scene.exportZip')}>
+                            <Download className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
@@ -515,7 +526,7 @@ export default function SceneMode() {
             </div>
 
             {/* Scene Grid */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-1">
                 {scenes.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-white/5 rounded-3xl border border-white/10 border-dashed">
                         <div className="h-20 w-20 rounded-full bg-white/5 flex items-center justify-center mb-6"> <ImageIcon className="h-10 w-10 opacity-50" /> </div>
@@ -585,6 +596,12 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
     const activePresetId = useSceneStore(s => s.activePresetId)
     const isEditMode = useSceneStore(s => s.isEditMode)
     const isSelected = useSceneStore(s => s.selectedSceneIds.includes(scene.id))
+    
+    // Subscribe to queueCount directly for fast updates (bypasses memo)
+    const queueCount = useSceneStore(s => {
+        const preset = s.presets.find(p => p.id === s.activePresetId)
+        return preset?.scenes.find(sc => sc.id === scene.id)?.queueCount ?? 0
+    })
 
     // Streaming State - only this card's streaming state
     const isStreaming = useSceneStore(s => s.streamingSceneId === scene.id)
@@ -601,6 +618,7 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
     const toggleSceneSelection = useSceneStore.getState().toggleSceneSelection
     const selectSceneRange = useSceneStore.getState().selectSceneRange
     const lastSelectedSceneId = useSceneStore.getState().lastSelectedSceneId
+    const batchCount = useGenerationStore.getState().batchCount
 
     const thumbnail = getSceneThumbnail(scene)
     const [imageUrl, setImageUrl] = useState<string>('')
@@ -644,7 +662,7 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
 
     const onDelete = () => { if (activePresetId) deleteScene(activePresetId, scene.id) }
     const onDuplicate = () => { if (activePresetId) duplicateScene(activePresetId, scene.id) }
-    const onIncrement = () => { if (activePresetId) incrementQueue(activePresetId, scene.id) }
+    const onIncrement = () => { if (activePresetId) incrementQueue(activePresetId, scene.id, useGenerationStore.getState().batchCount) }
     const onDecrement = () => { if (activePresetId) decrementQueue(activePresetId, scene.id) }
 
     const handleSceneClick = (e: React.MouseEvent) => {
@@ -659,6 +677,11 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
             }
         } else {
             // Normal Mode: navigate to detail
+            // Save scroll position before navigating
+            const scrollContainer = document.querySelector('.custom-scrollbar')
+            if (scrollContainer) {
+                useSceneStore.getState().setScrollPosition(scrollContainer.scrollTop)
+            }
             if (onClick) onClick()
             else navigate(`/scenes/${scene.id}`)
         }
@@ -694,9 +717,9 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
                     )}
 
                     {/* Queue Badge - lightweight */}
-                    {scene.queueCount > 0 && (
+                    {queueCount > 0 && (
                         <div className="absolute top-2 left-2 z-30 px-2.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
-                            {scene.queueCount}
+                            {queueCount}
                         </div>
                     )}
 
@@ -751,7 +774,7 @@ const SceneCardItem = memo(function SceneCardItem({ scene, onClick, disabled = f
                         </div>
 
                         <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                            <Button variant="secondary" size="icon" className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/5 disabled:opacity-30" onClick={() => onDecrement()} disabled={scene.queueCount === 0 || disabled}> <Minus className="h-3 w-3" /> </Button>
+                            <Button variant="secondary" size="icon" className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/5 disabled:opacity-30" onClick={() => onDecrement()} disabled={queueCount === 0 || disabled}> <Minus className="h-3 w-3" /> </Button>
                             <div className="flex-1" />
                             <Button variant="secondary" size="icon" className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/5" onClick={() => onIncrement()} disabled={disabled}> <Plus className="h-3 w-3" /> </Button>
                         </div>

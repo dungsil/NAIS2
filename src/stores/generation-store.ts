@@ -294,7 +294,7 @@ export const useGenerationStore = create<GenerationState>()(
                         const { characterImages, vibeImages } = useCharacterStore.getState()
 
                         // Character Prompts (Position-based)
-                        const { characters: characterPrompts } = useCharacterPromptStore.getState()
+                        const { characters: characterPrompts, positionEnabled } = useCharacterPromptStore.getState()
 
                         // Check if streaming is enabled
                         const { useStreaming } = useSettingsStore.getState()
@@ -355,6 +355,7 @@ export const useGenerationStore = create<GenerationState>()(
 
                             // Character Prompts (V4 char_captions with positions)
                             characterPrompts: characterPrompts.filter(c => c.enabled),
+                            characterPositionEnabled: positionEnabled,
                         }
 
                         // Reset progress

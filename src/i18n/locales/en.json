@@ -365,7 +365,7 @@
         "allFolders": "All Folders",
         "noImages": "No Images",
         "noImagesDesc": "Generated images will appear here",
-        "selected": "selected",
+        "selected": " selected",
         "download": "Download",
         "add": "Add Images",
         "drop": "Drop to Add",
@@ -377,7 +377,9 @@
         "emptyDesc": "Drag and drop images or generate new ones to build your collection.",
         "renameInput": "Enter New Name",
         "renameDesc": "Enter a new name for the select image.",
-        "dropHint": "Drag and drop images to add"
+        "dropHint": "Drag and drop images to add",
+        "createStack": "Create Stack",
+        "unstack": "Unstack"
     },
     "settingsPage": {
         "title": "Settings",
@@ -554,5 +556,25 @@
         "or": "or",
         "sequential": "sequential",
         "contentPlaceholder": "Enter one option per line.\nLines starting with # are comments.\n\nExample:\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes"
+    },
+    "characterPanel": {
+        "title": "Character Prompts",
+        "position": "Position",
+        "add": "Add",
+        "empty": "No characters",
+        "addFirst": "Add first character",
+        "unnamed": "Character",
+        "prompt": "Prompt",
+        "negative": "Negative",
+        "promptPlaceholder": "Character appearance tags...",
+        "negativePlaceholder": "Tags to exclude...",
+        "noPrompt": "No prompt",
+        "disable": "Disable",
+        "enable": "Enable",
+        "rename": "Rename",
+        "namePlaceholder": "Enter character name...",
+        "positionTitle": "Character Position",
+        "positionHelp": "Drag characters to set their position",
+        "noActiveCharacters": "No active characters"
     }
 }

@@ -393,7 +393,7 @@
         "allFolders": "모든 폴더",
         "noImages": "이미지가 없습니다",
         "noImagesDesc": "이미지를 생성하면 여기에 표시됩니다",
-        "selected": "선택됨",
+        "selected": "개 선택",
         "download": "다운로드",
         "add": "이미지 추가",
         "drop": "여기에 놓아서 추가",
@@ -405,7 +405,9 @@
         "emptyDesc": "이미지를 드래그하거나 생성하여 나만의 컬렉션을 만들어보세요.",
         "renameInput": "새 이름 입력",
         "renameDesc": "선택한 이미지의 새로운 이름을 입력하세요.",
-        "dropHint": "이미지를 드래그하여 추가하세요"
+        "dropHint": "이미지를 드래그하여 추가하세요",
+        "createStack": "스택 만들기",
+        "unstack": "스택 해제"
     },
     "settingsPage": {
         "title": "설정",
@@ -555,5 +557,25 @@
         "or": "또는",
         "sequential": "순차",
         "contentPlaceholder": "한 줄에 하나씩 옵션을 입력하세요.\n# 으로 시작하는 줄은 주석입니다.\n\n예시:\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes"
+    },
+    "characterPanel": {
+        "title": "캐릭터 프롬프트",
+        "position": "위치",
+        "add": "추가",
+        "empty": "캐릭터가 없습니다",
+        "addFirst": "첫 캐릭터 추가",
+        "unnamed": "캐릭터",
+        "prompt": "프롬프트",
+        "negative": "네거티브",
+        "promptPlaceholder": "캐릭터 외형 태그...",
+        "negativePlaceholder": "제외할 태그...",
+        "noPrompt": "프롬프트 없음",
+        "disable": "비활성화",
+        "enable": "활성화",
+        "rename": "이름 변경",
+        "namePlaceholder": "캐릭터 이름 입력...",
+        "positionTitle": "캐릭터 위치 지정",
+        "positionHelp": "캐릭터를 드래그하여 위치를 지정하세요",
+        "noActiveCharacters": "활성화된 캐릭터가 없습니다"
     }
 }

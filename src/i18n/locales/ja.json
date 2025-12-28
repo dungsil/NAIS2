@@ -365,7 +365,7 @@
         "allFolders": "すべてのフォルダ",
         "noImages": "画像がありません",
         "noImagesDesc": "画像を生成すると、ここに表示されます",
-        "selected": "選択済み",
+        "selected": "個選択",
         "download": "ダウンロード",
         "add": "画像追加",
         "drop": "ここにドロップして追加",
@@ -377,7 +377,9 @@
         "emptyDesc": "画像をドラッグ＆ドロップするか、生成してコレクションを作成しましょう。",
         "renameInput": "新しい名前を入力",
         "renameDesc": "選択した画像の新しい名前を入力してください。",
-        "dropHint": "画像をドラッグ＆ドロップして追加"
+        "dropHint": "画像をドラッグ＆ドロップして追加",
+        "createStack": "スタック作成",
+        "unstack": "スタック解除"
     },
     "settingsPage": {
         "title": "設定",
@@ -523,6 +525,27 @@
         "goToSettings": "設定ページでAPIキーを入力してください",
         "error": "エラーが発生しました",
         "tokenUsage": "トークン消費"
+    },
+    "characterPanel": {
+        "title": "キャラクタープロンプト",
+        "position": "位置",
+        "add": "キャラクター追加",
+        "empty": "キャラクタープロンプトがありません",
+        "addFirst": "最初のキャラクターを追加",
+        "unnamed": "キャラクター",
+        "prompt": "プロンプト",
+        "negative": "ネガティブ",
+        "promptPlaceholder": "キャラクターのプロンプトを入力...",
+        "negativePlaceholder": "ネガティブプロンプト（任意）...",
+        "noPrompt": "プロンプトなし",
+        "disable": "無効化",
+        "enable": "有効化",
+        "rename": "名前変更",
+        "namePlaceholder": "キャラクター名を入力...",
+        "duplicate": "複製",
+        "positionTitle": "キャラクター位置指定",
+        "positionHelp": "キャラクターをドラッグして位置を指定",
+        "noActiveCharacters": "有効なキャラクターがありません"
     },
     "fragment": {
         "manager": "フラグメントプロンプト管理",

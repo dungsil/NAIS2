@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 
 export interface CharacterPrompt {
     id: string
+    name?: string         // Character name (optional)
     prompt: string        // Character-specific tags
     negative: string      // Character-specific negative tags
     enabled: boolean
@@ -39,6 +40,7 @@ export interface CharacterPreset {
 
 export interface CharacterPrompt {
     id: string
+    name?: string         // Character name (optional)
     presetId?: string // Link to origin preset
     prompt: string        // Character-specific tags
     negative: string      // Character-specific negative tags
@@ -49,6 +51,7 @@ export interface CharacterPrompt {
 interface CharacterPromptState {
     characters: CharacterPrompt[]
     presets: CharacterPreset[]
+    positionEnabled: boolean // 위치 기능 활성화 여부
 
     // Active Characters (Stage)
     addCharacter: (initialData?: Partial<CharacterPrompt>) => void
@@ -57,6 +60,7 @@ interface CharacterPromptState {
     setPosition: (id: string, x: number, y: number) => void
     toggleEnabled: (id: string) => void
     clearAll: () => void
+    setPositionEnabled: (enabled: boolean) => void
 
     // Presets (Library)
     addPreset: (data: Partial<CharacterPreset> & Omit<CharacterPreset, 'id'>) => void
@@ -70,6 +74,7 @@ export const useCharacterPromptStore = create<CharacterPromptState>()(
         (set) => ({
             characters: [],
             presets: [],
+            positionEnabled: false, // 기본값: 비활성화
 
             addCharacter: (initialData?: Partial<CharacterPrompt>) => {
                 const newId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
@@ -122,6 +127,8 @@ export const useCharacterPromptStore = create<CharacterPromptState>()(
             },
 
             clearAll: () => set({ characters: [] }),
+
+            setPositionEnabled: (enabled) => set({ positionEnabled: enabled }),
 
             // Preset Actions
             addPreset: (data) => {

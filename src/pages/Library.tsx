@@ -26,9 +26,10 @@ import { useTranslation } from 'react-i18next'
 import { mkdir, exists, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { pictureDir, join } from '@tauri-apps/api/path'
 import { toast } from '@/components/ui/use-toast'
-import { ImagePlus, X, Grid3x3 } from 'lucide-react'
+import { ImagePlus, X, Grid3x3, Edit3, Trash2, Layers, ArrowLeft, CheckSquare, Square, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/settings-store'
+import { cn } from '@/lib/utils'
 
 const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
@@ -49,10 +50,36 @@ import { readFile } from '@tauri-apps/plugin-fs'
 
 export default function Library() {
     const { t } = useTranslation()
-    const { items, addItem, setItems, updateItem, gridColumns, setGridColumns } = useLibraryStore()
+    const { 
+        items, 
+        addItem, 
+        setItems, 
+        updateItem, 
+        gridColumns, 
+        setGridColumns,
+        // Edit Mode
+        isEditMode,
+        setEditMode,
+        selectedItemIds,
+        toggleItemSelection,
+        selectItemRange,
+        selectAllItems,
+        clearSelection,
+        deleteSelectedItems,
+        lastSelectedItemId,
+        // Stack
+        createStackFromSelected,
+        currentStackId,
+        setCurrentStackId,
+        unstack
+    } = useLibraryStore()
     const { libraryPath, useAbsoluteLibraryPath } = useSettingsStore()
     const [activeId, setActiveId] = useState<string | null>(null)
     const [isDraggingFile, setIsDraggingFile] = useState(false)
+
+    // Get current view items (main library or inside a stack)
+    const currentStack = currentStackId ? items.find(i => i.id === currentStackId) : null
+    const viewItems = currentStack?.stackItems || items.filter(i => !currentStackId)
 
     // Dialog States
     const [renameDialogOpen, setRenameDialogOpen] = useState(false)
@@ -339,14 +366,90 @@ export default function Library() {
         >
             {/* Header */}
             <div className="h-14 border-b flex items-center px-6 justify-between bg-background/50 backdrop-blur-sm z-10 w-full box-border">
-                <h2 className="text-lg font-semibold tracking-tight">{t('library.title', '라이브러리')}</h2>
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" className="h-9 text-muted-foreground hover:text-foreground hover:bg-white/10" onClick={handleToggleGrid} title={t('scene.gridColumns', { count: gridColumns })}>
-                        <Grid3x3 className="h-4 w-4 mr-1.5" />
-                        <span className="font-medium text-sm">{gridColumns}</span>
-                    </Button>
-                    <span className="text-sm text-muted-foreground">{items.length} {t('library.items', 'items')}</span>
-                </div>
+                {isEditMode ? (
+                    /* Edit Mode Header */
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="sm" className="h-9 hover:bg-white/10" onClick={() => setEditMode(false)}>
+                                <X className="h-4 w-4 mr-2" /> {t('actions.cancel', '취소')}
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                {selectedItemIds.length} {t('library.selected', '개 선택')}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" className="h-9 hover:bg-white/10" onClick={selectAllItems}>
+                                <CheckSquare className="h-4 w-4 mr-2" /> {t('scene.selectAll', '전체 선택')}
+                            </Button>
+                            <div className="w-px h-5 bg-white/10" />
+                            {!currentStackId && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-9 hover:bg-white/10" 
+                                    onClick={createStackFromSelected}
+                                    disabled={selectedItemIds.length < 2}
+                                    title={t('library.createStack', '스택 만들기')}
+                                >
+                                    <Layers className="h-4 w-4 mr-2" /> {t('library.createStack', '스택 만들기')}
+                                </Button>
+                            )}
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                                onClick={deleteSelectedItems}
+                                disabled={selectedItemIds.length === 0}
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" /> {t('actions.delete', '삭제')}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    /* Normal Header */
+                    <>
+                        <div className="flex items-center gap-3">
+                            {currentStackId ? (
+                                <>
+                                    <Button variant="ghost" size="sm" className="h-9 hover:bg-white/10" onClick={() => setCurrentStackId(null)}>
+                                        <ArrowLeft className="h-4 w-4 mr-2" /> {t('actions.back', '뒤로')}
+                                    </Button>
+                                    <h2 className="text-lg font-semibold tracking-tight">{currentStack?.name}</h2>
+                                </>
+                            ) : (
+                                <h2 className="text-lg font-semibold tracking-tight">{t('library.title', '라이브러리')}</h2>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-white/10" 
+                                onClick={() => setEditMode(true)} 
+                                disabled={viewItems.length === 0}
+                                title={t('scene.editMode', '편집 모드')}
+                            >
+                                <Edit3 className="h-4 w-4" />
+                            </Button>
+                            {currentStackId && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-9 hover:bg-white/10" 
+                                    onClick={() => unstack(currentStackId)}
+                                    title={t('library.unstack', '스택 해제')}
+                                >
+                                    <FolderOpen className="h-4 w-4 mr-2" /> {t('library.unstack', '스택 해제')}
+                                </Button>
+                            )}
+                            <Button variant="ghost" size="sm" className="h-9 text-muted-foreground hover:text-foreground hover:bg-white/10" onClick={handleToggleGrid} title={t('scene.gridColumns', { count: gridColumns })}>
+                                <Grid3x3 className="h-4 w-4 mr-1.5" />
+                                <span className="font-medium text-sm">{gridColumns}</span>
+                            </Button>
+                            <span className="text-sm text-muted-foreground">{viewItems.length} {t('library.items', 'items')}</span>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Content */}
@@ -363,21 +466,45 @@ export default function Library() {
                     }}
                 >
                     <SortableContext
-                        items={items.map(i => i.id)}
+                        items={viewItems.map(i => i.id)}
                         strategy={rectSortingStrategy}
                     >
                         <div
                             className="grid gap-6 pb-10"
                             style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
                         >
-                            {items.map((item) => (
+                            {viewItems.map((item) => (
                                 <SortableLibraryItem
                                     key={item.id}
                                     item={item}
                                     onRename={handleRenameClick}
                                     onAddRef={handleAddRefClick}
                                     onLoadMetadata={handleLoadMetadata}
-                                    onImageClick={(imgUrl) => setViewerImageSrc(imgUrl)}
+                                    onImageClick={(imgUrl) => {
+                                        if (isEditMode && !item.isStack) {
+                                            // Edit mode: toggle selection (stacks cannot be selected)
+                                            toggleItemSelection(item.id, false)
+                                        } else if (item.isStack) {
+                                            // Stack: navigate into it
+                                            setCurrentStackId(item.id)
+                                        } else {
+                                            // Normal: show fullscreen
+                                            setViewerImageSrc(imgUrl)
+                                        }
+                                    }}
+                                    isEditMode={isEditMode}
+                                    isSelected={selectedItemIds.includes(item.id)}
+                                    onSelectionClick={(e: React.MouseEvent) => {
+                                        if (item.isStack) return // Stacks cannot be selected
+                                        if (e.shiftKey && lastSelectedItemId) {
+                                            selectItemRange(lastSelectedItemId, item.id)
+                                        } else if (e.ctrlKey || e.metaKey) {
+                                            toggleItemSelection(item.id, false)
+                                        } else {
+                                            toggleItemSelection(item.id, true)
+                                        }
+                                    }}
+                                    disabled={isEditMode}
                                 />
                             ))}
                         </div>
@@ -390,7 +517,7 @@ export default function Library() {
                     </DragOverlay>
                 </DndContext>
 
-                {items.length === 0 && (
+                {viewItems.length === 0 && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
                         <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center mb-6 animate-pulse">
                             <ImagePlus className="h-10 w-10 text-muted-foreground" />
