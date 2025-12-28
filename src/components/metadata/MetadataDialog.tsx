@@ -161,7 +161,12 @@ export function MetadataDialog({ open, onOpenChange, initialImage }: MetadataDia
         // Apply selected metadata to generation store
         if (loadOptions.prompts) {
             if (metadata.prompt) genStore.setBasePrompt(metadata.prompt)
-            if (metadata.negativePrompt) genStore.setNegativePrompt(metadata.negativePrompt)
+            // V4 negative prompt has priority over legacy uc
+            if (metadata.v4_negative_prompt?.caption?.base_caption) {
+                genStore.setNegativePrompt(metadata.v4_negative_prompt.caption.base_caption)
+            } else if (metadata.negativePrompt) {
+                genStore.setNegativePrompt(metadata.negativePrompt)
+            }
         }
 
         if (loadOptions.parameters) {
@@ -341,13 +346,13 @@ export function MetadataDialog({ open, onOpenChange, initialImage }: MetadataDia
                                     </div>
 
                                     {/* Negative Prompt */}
-                                    {metadata.negativePrompt && (
+                                    {(metadata.negativePrompt || metadata.v4_negative_prompt?.caption?.base_caption) && (
                                         <div className="space-y-1">
                                             <Label className="text-xs font-medium text-muted-foreground">
                                                 Negative Prompt
                                             </Label>
                                             <Textarea
-                                                value={metadata.negativePrompt}
+                                                value={metadata.v4_negative_prompt?.caption?.base_caption || metadata.negativePrompt || ''}
                                                 readOnly
                                                 className="text-xs resize-none h-24 bg-muted/30 cursor-text select-text"
                                             />

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import Counter from '@/components/ui/counter'
+import { SHORTCUT_EVENTS } from '@/hooks/useShortcuts'
 import {
     Select,
     SelectContent,
@@ -134,6 +135,27 @@ export function PromptPanel() {
     const [promptGenOpen, setPromptGenOpen] = useState(false)
     const [fragmentDialogOpen, setFragmentDialogOpen] = useState(false)
     const [characterPanelOpen, setCharacterPanelOpen] = useState(false)
+    const [parameterDialogOpen, setParameterDialogOpen] = useState(false)
+
+    // 전역 단축키 이벤트 수신
+    useEffect(() => {
+        const handleOpenPromptGen = () => setPromptGenOpen(prev => !prev)
+        const handleOpenFragment = () => setFragmentDialogOpen(prev => !prev)
+        const handleOpenParameters = () => setParameterDialogOpen(prev => !prev)
+        const handleOpenCharacterPrompt = () => setCharacterPanelOpen(prev => !prev)
+
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_PROMPT_GENERATOR, handleOpenPromptGen)
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_FRAGMENT_DIALOG, handleOpenFragment)
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_PARAMETER_SETTINGS, handleOpenParameters)
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_CHARACTER_PROMPT, handleOpenCharacterPrompt)
+
+        return () => {
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_PROMPT_GENERATOR, handleOpenPromptGen)
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_FRAGMENT_DIALOG, handleOpenFragment)
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_PARAMETER_SETTINGS, handleOpenParameters)
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_CHARACTER_PROMPT, handleOpenCharacterPrompt)
+        }
+    }, [])
 
     const handleRandomSeed = () => {
         if (!seedLocked) {
@@ -291,7 +313,7 @@ export function PromptPanel() {
                     <img src={GeminiIcon} alt="Gemini" className="h-5 w-5" />
                 </Button>
                 {/* Parameter Settings Dialog */}
-                <Dialog>
+                <Dialog open={parameterDialogOpen} onOpenChange={setParameterDialogOpen}>
                     <DialogTrigger asChild>
                         <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0">
                             <SlidersHorizontal className="h-4 w-4" />

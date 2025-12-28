@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Check, AlertCircle, ChevronDown } from 'lucide-react'
+import { Loader2, Check, AlertCircle, ChevronDown, Copy } from 'lucide-react'
 import GeminiIcon from '@/assets/gemini-color.svg'
 import {
     Dialog,
@@ -345,6 +345,21 @@ export function PromptGeneratorDialog({ open, onOpenChange, onApply }: PromptGen
                 {/* Only show Apply button when there are results */}
                 {results.length > 0 && (
                     <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                const finalTags = Array.from(selectedTags.values()).join(', ')
+                                navigator.clipboard.writeText(finalTags)
+                                toast({
+                                    title: t('common.copied', '복사됨'),
+                                    description: t('promptGenerator.copiedToClipboard', '클립보드에 복사되었습니다'),
+                                })
+                            }}
+                            disabled={selectedTags.size === 0}
+                        >
+                            <Copy className="h-4 w-4 mr-1" />
+                            {t('common.copy', '복사')}
+                        </Button>
                         <Button
                             onClick={handleApply}
                             disabled={selectedTags.size === 0}

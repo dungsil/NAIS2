@@ -388,7 +388,8 @@
             "general": "一般",
             "appearance": "外観",
             "api": "API",
-            "storage": "ストレージ"
+            "storage": "ストレージ",
+            "shortcuts": "ショートカット"
         },
         "api": {
             "title": "API設定",
@@ -455,7 +456,39 @@
         "saveBtn": "保存",
         "saved": "設定が保存されました。",
         "saving": "保存中...",
-        "reset": "リセット"
+        "reset": "リセット",
+        "shortcuts": {
+            "title": "ショートカット",
+            "description": "グローバルキーボードショートカットを設定します。",
+            "enable": "ショートカットを有効化",
+            "enableHelp": "グローバルキーボードショートカットを有効または無効にします。",
+            "bindings": "キーバインド",
+            "resetAll": "全てリセット",
+            "navigation": "ナビゲーション",
+            "dialogs": "ダイアログ",
+            "actions": "アクション",
+            "pressKey": "キーを入力...",
+            "reset": "リセット",
+            "conflict": "既に使用中:",
+            "override": "上書き"
+        }
+    },
+    "shortcuts": {
+        "actions": {
+            "navigateMain": "メインモード",
+            "navigateScenes": "シーンモード",
+            "navigateTools": "スマートツール",
+            "navigateWeb": "ウェブ",
+            "navigateLibrary": "ライブラリ",
+            "navigateSettings": "設定",
+            "promptGenerator": "プロンプト生成",
+            "fragmentDialog": "フラグメントプロンプト",
+            "parameterSettings": "パラメータ設定",
+            "imageReference": "イメージ参照",
+            "characterPrompt": "キャラクタープロンプト",
+            "presetDialog": "プリセット管理",
+            "generate": "画像生成"
+        }
     },
     "tools": {
         "i2i": {

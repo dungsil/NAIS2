@@ -32,12 +32,14 @@ import {
     Download,
     Timer,
     Sparkles,
+    Keyboard,
 } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { useThemeStore } from '@/stores/theme-store'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSettingsStore } from '@/stores/settings-store'
+import { useShortcutStore, SHORTCUT_ACTIONS, formatKeyBinding, type ShortcutAction, type KeyBinding } from '@/stores/shortcut-store'
 import { toast } from '@/components/ui/use-toast'
 import NovelAILogo from '@/assets/novelai_logo.svg'
 import GeminiIcon from '@/assets/gemini-color.svg'
@@ -53,13 +55,14 @@ const LANGUAGES = [
     { code: 'ja', name: '日本語' },
 ]
 
-type SettingsSection = 'general' | 'appearance' | 'api' | 'storage'
+type SettingsSection = 'general' | 'appearance' | 'api' | 'storage' | 'shortcuts'
 
 const SECTIONS = [
     { id: 'general' as const, icon: Settings2, labelKey: 'settingsPage.sections.general' },
     { id: 'appearance' as const, icon: Palette, labelKey: 'settingsPage.sections.appearance' },
     { id: 'api' as const, icon: Key, labelKey: 'settingsPage.sections.api' },
     { id: 'storage' as const, icon: FolderOpen, labelKey: 'settingsPage.sections.storage' },
+    { id: 'shortcuts' as const, icon: Keyboard, labelKey: 'settingsPage.sections.shortcuts' },
 ]
 
 export default function Settings() {
@@ -67,6 +70,7 @@ export default function Settings() {
     const { theme, setTheme } = useThemeStore()
     const { token, isVerified, anlas, isLoading, verifyAndSave } = useAuthStore()
     const { savePath, autoSave, setSavePath, setAutoSave, promptFontSize, setPromptFontSize, useStreaming, setUseStreaming, generationDelay, setGenerationDelay, geminiApiKey, setGeminiApiKey, useAbsolutePath, libraryPath, useAbsoluteLibraryPath, setLibraryPath } = useSettingsStore()
+    const { bindings, enabled: shortcutsEnabled, setBinding, resetBinding, resetAllBindings, setEnabled: setShortcutsEnabled } = useShortcutStore()
     const [localGeminiKey, setLocalGeminiKey] = useState(geminiApiKey)
 
     const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -81,6 +85,10 @@ export default function Settings() {
     const [appVersion, setAppVersion] = useState('')
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
     const { pendingUpdate, isDownloading, setPendingUpdate, setIsDownloading, setDownloadProgress } = useUpdateStore()
+    
+    // 키바인드 편집 상태
+    const [editingAction, setEditingAction] = useState<ShortcutAction | null>(null)
+    const [recordedBinding, setRecordedBinding] = useState<KeyBinding | null>(null)
 
     useEffect(() => {
         getVersion().then(setAppVersion).catch(() => setAppVersion('dev'))
@@ -704,8 +712,306 @@ export default function Settings() {
                             </div>
                         </section>
                     )}
+
+                    {/* Shortcuts Section */}
+                    {activeSection === 'shortcuts' && (
+                        <section className="space-y-6">
+                            <div>
+                                <h2 className="text-xl font-semibold">{t('settingsPage.shortcuts.title', '단축키')}</h2>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {t('settingsPage.shortcuts.description', '전역 단축키를 설정합니다.')}
+                                </p>
+                            </div>
+
+                            {/* Enable/Disable Shortcuts */}
+                            <div className="border border-border/50 rounded-xl p-6 bg-card/30">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <label className="text-sm font-medium">{t('settingsPage.shortcuts.enable', '단축키 활성화')}</label>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {t('settingsPage.shortcuts.enableHelp', '전역 단축키를 활성화하거나 비활성화합니다.')}
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={shortcutsEnabled}
+                                        onChange={(e) => setShortcutsEnabled(e.target.checked)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Shortcut Bindings */}
+                            <div className="border border-border/50 rounded-xl p-6 space-y-4 bg-card/30">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-medium">{t('settingsPage.shortcuts.bindings', '키 바인딩')}</h3>
+                                    <Button variant="ghost" size="sm" onClick={resetAllBindings}>
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                        {t('settingsPage.shortcuts.resetAll', '전체 초기화')}
+                                    </Button>
+                                </div>
+
+                                {/* Navigation */}
+                                <div className="space-y-2">
+                                    <h4 className="text-xs text-muted-foreground uppercase tracking-wider">
+                                        {t('settingsPage.shortcuts.navigation', '네비게이션')}
+                                    </h4>
+                                    {SHORTCUT_ACTIONS.filter(a => a.category === 'navigation').map(({ action }) => (
+                                        <ShortcutRow
+                                            key={action}
+                                            action={action}
+                                            binding={bindings[action]}
+                                            allBindings={bindings}
+                                            isEditing={editingAction === action}
+                                            recordedBinding={editingAction === action ? recordedBinding : null}
+                                            onStartEdit={() => {
+                                                setEditingAction(action)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onSave={(binding) => {
+                                                setBinding(action, binding)
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onCancel={() => {
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onReset={() => resetBinding(action)}
+                                            onKeyRecord={setRecordedBinding}
+                                            t={t}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Dialogs */}
+                                <div className="space-y-2">
+                                    <h4 className="text-xs text-muted-foreground uppercase tracking-wider">
+                                        {t('settingsPage.shortcuts.dialogs', '다이얼로그')}
+                                    </h4>
+                                    {SHORTCUT_ACTIONS.filter(a => a.category === 'dialog').map(({ action }) => (
+                                        <ShortcutRow
+                                            key={action}
+                                            action={action}
+                                            binding={bindings[action]}
+                                            allBindings={bindings}
+                                            isEditing={editingAction === action}
+                                            recordedBinding={editingAction === action ? recordedBinding : null}
+                                            onStartEdit={() => {
+                                                setEditingAction(action)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onSave={(binding) => {
+                                                setBinding(action, binding)
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onCancel={() => {
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onReset={() => resetBinding(action)}
+                                            onKeyRecord={setRecordedBinding}
+                                            t={t}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="space-y-2">
+                                    <h4 className="text-xs text-muted-foreground uppercase tracking-wider">
+                                        {t('settingsPage.shortcuts.actions', '액션')}
+                                    </h4>
+                                    {SHORTCUT_ACTIONS.filter(a => a.category === 'action').map(({ action }) => (
+                                        <ShortcutRow
+                                            key={action}
+                                            action={action}
+                                            binding={bindings[action]}
+                                            allBindings={bindings}
+                                            isEditing={editingAction === action}
+                                            recordedBinding={editingAction === action ? recordedBinding : null}
+                                            onStartEdit={() => {
+                                                setEditingAction(action)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onSave={(binding) => {
+                                                setBinding(action, binding)
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onCancel={() => {
+                                                setEditingAction(null)
+                                                setRecordedBinding(null)
+                                            }}
+                                            onReset={() => resetBinding(action)}
+                                            onKeyRecord={setRecordedBinding}
+                                            t={t}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+                    )}
                 </div>
             </main>
+        </div>
+    )
+}
+
+// 단축키 행 컴포넌트
+interface ShortcutRowProps {
+    action: ShortcutAction
+    binding: KeyBinding
+    allBindings: Record<ShortcutAction, KeyBinding>
+    isEditing: boolean
+    recordedBinding: KeyBinding | null
+    onStartEdit: () => void
+    onSave: (binding: KeyBinding) => void
+    onCancel: () => void
+    onReset: () => void
+    onKeyRecord: (binding: KeyBinding) => void
+    t: (key: string, fallback?: string) => string
+}
+
+function ShortcutRow({ action, binding, allBindings, isEditing, recordedBinding, onStartEdit, onSave, onCancel, onReset, onKeyRecord, t }: ShortcutRowProps) {
+    const [conflictAction, setConflictAction] = useState<ShortcutAction | null>(null)
+
+    // 충돌 체크 함수
+    const checkConflict = (newBinding: KeyBinding): ShortcutAction | null => {
+        for (const [otherAction, otherBinding] of Object.entries(allBindings)) {
+            if (otherAction === action) continue // 자기 자신은 제외
+            
+            // 키 조합이 정확히 같은지 확인
+            if (
+                otherBinding.key === newBinding.key &&
+                !!otherBinding.ctrl === !!newBinding.ctrl &&
+                !!otherBinding.shift === !!newBinding.shift &&
+                !!otherBinding.alt === !!newBinding.alt
+            ) {
+                return otherAction as ShortcutAction
+            }
+        }
+        return null
+    }
+
+    const handleSave = () => {
+        if (!recordedBinding) return
+        
+        const conflict = checkConflict(recordedBinding)
+        if (conflict) {
+            setConflictAction(conflict)
+            return
+        }
+        
+        onSave(recordedBinding)
+        setConflictAction(null)
+    }
+
+    const handleForceOverride = () => {
+        if (!recordedBinding) return
+        onSave(recordedBinding)
+        setConflictAction(null)
+    }
+    useEffect(() => {
+        if (!isEditing) return
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            e.preventDefault()
+            e.stopPropagation()
+
+            // Escape로 취소
+            if (e.key === 'Escape') {
+                onCancel()
+                return
+            }
+
+            // 단독 modifier 키는 무시
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) {
+                return
+            }
+
+            const newBinding: KeyBinding = {
+                key: e.key,
+                ctrl: e.ctrlKey || e.metaKey,
+                shift: e.shiftKey,
+                alt: e.altKey,
+                label: '',
+                description: binding.description,
+            }
+            newBinding.label = formatKeyBinding(newBinding)
+            onKeyRecord(newBinding)
+        }
+
+        window.addEventListener('keydown', handleKeyDown, true)
+        return () => window.removeEventListener('keydown', handleKeyDown, true)
+    }, [isEditing, binding.description, onCancel, onKeyRecord])
+
+    const displayBinding = recordedBinding || binding
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
+                <span className="text-sm">{t(binding.description, binding.description)}</span>
+                <div className="flex items-center gap-2">
+                    {isEditing ? (
+                        <>
+                            <div className={cn(
+                                "px-3 py-1.5 rounded-md text-sm font-mono min-w-[100px] text-center",
+                                recordedBinding ? "bg-primary text-primary-foreground" : "bg-muted animate-pulse"
+                            )}>
+                                {recordedBinding ? recordedBinding.label : t('settingsPage.shortcuts.pressKey', '키 입력...')}
+                            </div>
+                            <Button size="sm" variant="ghost" onClick={onCancel}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                            {recordedBinding && (
+                                <Button size="sm" variant="default" onClick={handleSave}>
+                                    <Check className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={onStartEdit}
+                                className="px-3 py-1.5 rounded-md text-sm font-mono bg-muted hover:bg-muted/80 min-w-[100px] text-center"
+                            >
+                                {displayBinding.label}
+                            </button>
+                            <Button size="sm" variant="ghost" onClick={onReset} title={t('settingsPage.shortcuts.reset', '초기화')}>
+                                <RotateCcw className="h-3 w-3" />
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </div>
+            
+            {/* 충돌 경고 */}
+            {conflictAction && recordedBinding && (
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                        <Info className="h-4 w-4" />
+                        <span>
+                            {t('settingsPage.shortcuts.conflict', '이미 사용 중:')} {t(allBindings[conflictAction].description, allBindings[conflictAction].description)}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => setConflictAction(null)}
+                            className="text-destructive hover:text-destructive"
+                        >
+                            {t('common.cancel', '취소')}
+                        </Button>
+                        <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={handleForceOverride}
+                        >
+                            {t('settingsPage.shortcuts.override', '덮어쓰기')}
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

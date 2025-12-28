@@ -388,7 +388,8 @@
             "general": "General",
             "appearance": "Appearance",
             "api": "API",
-            "storage": "Storage"
+            "storage": "Storage",
+            "shortcuts": "Shortcuts"
         },
         "api": {
             "title": "API Settings",
@@ -455,7 +456,39 @@
         "saveBtn": "Save",
         "saved": "Settings saved successfully.",
         "saving": "Saving...",
-        "reset": "Reset"
+        "reset": "Reset",
+        "shortcuts": {
+            "title": "Shortcuts",
+            "description": "Configure global keyboard shortcuts.",
+            "enable": "Enable Shortcuts",
+            "enableHelp": "Enable or disable global keyboard shortcuts.",
+            "bindings": "Key Bindings",
+            "resetAll": "Reset All",
+            "navigation": "Navigation",
+            "dialogs": "Dialogs",
+            "actions": "Actions",
+            "pressKey": "Press key...",
+            "reset": "Reset",
+            "conflict": "Already in use:",
+            "override": "Override"
+        }
+    },
+    "shortcuts": {
+        "actions": {
+            "navigateMain": "Main Mode",
+            "navigateScenes": "Scene Mode",
+            "navigateTools": "Smart Tools",
+            "navigateWeb": "Web",
+            "navigateLibrary": "Library",
+            "navigateSettings": "Settings",
+            "promptGenerator": "Prompt Generator",
+            "fragmentDialog": "Fragment Prompt",
+            "parameterSettings": "Parameter Settings",
+            "imageReference": "Image Reference",
+            "characterPrompt": "Character Prompt",
+            "presetDialog": "Preset Manager",
+            "generate": "Generate Image"
+        }
     },
     "tools": {
         "i2i": {

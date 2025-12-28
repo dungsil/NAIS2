@@ -416,7 +416,8 @@
             "general": "일반",
             "appearance": "외관",
             "api": "API",
-            "storage": "저장"
+            "storage": "저장",
+            "shortcuts": "단축키"
         },
         "api": {
             "title": "API 설정",
@@ -483,7 +484,39 @@
         "saveBtn": "저장",
         "saved": "설정이 저장되었습니다.",
         "saving": "저장 중...",
-        "reset": "초기화"
+        "reset": "초기화",
+        "shortcuts": {
+            "title": "단축키",
+            "description": "전역 단축키를 설정합니다.",
+            "enable": "단축키 활성화",
+            "enableHelp": "전역 단축키를 활성화하거나 비활성화합니다.",
+            "bindings": "키 바인딩",
+            "resetAll": "전체 초기화",
+            "navigation": "네비게이션",
+            "dialogs": "다이얼로그",
+            "actions": "액션",
+            "pressKey": "키 입력...",
+            "reset": "초기화",
+            "conflict": "이미 사용 중:",
+            "override": "덮어쓰기"
+        }
+    },
+    "shortcuts": {
+        "actions": {
+            "navigateMain": "메인 모드",
+            "navigateScenes": "씬 모드",
+            "navigateTools": "스마트 툴",
+            "navigateWeb": "웹",
+            "navigateLibrary": "라이브러리",
+            "navigateSettings": "설정",
+            "promptGenerator": "프롬프트 생성",
+            "fragmentDialog": "조각 프롬프트",
+            "parameterSettings": "파라미터 설정",
+            "imageReference": "이미지 참조",
+            "characterPrompt": "캐릭터 프롬프트",
+            "presetDialog": "프리셋 관리",
+            "generate": "이미지 생성"
+        }
     },
     "languages": {
         "ko": "한국어",

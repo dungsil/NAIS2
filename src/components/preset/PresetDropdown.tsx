@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Pencil, Check, X, FolderOpen } from 'lucide-react'
 import {
@@ -14,7 +14,12 @@ import { Input } from '@/components/ui/input'
 import { usePresetStore } from '@/stores/preset-store'
 import { cn } from '@/lib/utils'
 
-function PresetDialogContent() {
+interface PresetDialogContentProps {
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+}
+
+function PresetDialogContent({ open: externalOpen, onOpenChange: externalOnOpenChange }: PresetDialogContentProps) {
     const { t } = useTranslation()
     const {
         presets,
@@ -25,11 +30,26 @@ function PresetDialogContent() {
         renamePreset,
     } = usePresetStore()
 
-    const [open, setOpen] = useState(false)
+    const [internalOpen, setInternalOpen] = useState(false)
+    
+    // Use external state if provided, otherwise internal
+    const open = externalOpen !== undefined ? externalOpen : internalOpen
+    const setOpen = externalOnOpenChange || setInternalOpen
+
     const [isCreating, setIsCreating] = useState(false)
     const [newName, setNewName] = useState('')
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editName, setEditName] = useState('')
+
+    // Reset state when dialog closes
+    useEffect(() => {
+        if (!open) {
+            setIsCreating(false)
+            setNewName('')
+            setEditingId(null)
+            setEditName('')
+        }
+    }, [open])
 
     const handleCreate = () => {
         if (newName.trim()) {

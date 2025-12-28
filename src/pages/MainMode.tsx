@@ -23,6 +23,7 @@ import { writeFile, mkdir, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { useNavigate } from 'react-router-dom'
 import { useToolsStore } from '@/stores/tools-store'
 import { Wand2 } from 'lucide-react'
+import { SHORTCUT_EVENTS } from '@/hooks/useShortcuts'
 
 export default function MainMode() {
     const { t } = useTranslation()
@@ -45,6 +46,20 @@ export default function MainMode() {
     const [metadataImage, setMetadataImage] = useState<string | undefined>(undefined)
     const [isDragOver, setIsDragOver] = useState(false)
     const [imageRefDialogOpen, setImageRefDialogOpen] = useState(false)
+
+    // 이미지 참조 단축키 이벤트 수신
+    useEffect(() => {
+        const handleOpenImageRef = () => {
+            if (previewImage) {
+                setImageRefDialogOpen(prev => !prev)
+            }
+        }
+
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_IMAGE_REFERENCE, handleOpenImageRef)
+        return () => {
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_IMAGE_REFERENCE, handleOpenImageRef)
+        }
+    }, [previewImage])
 
     // Get more store functions for regenerate with metadata
     const genStore = useGenerationStore()

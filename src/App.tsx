@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { ThreeColumnLayout } from '@/components/layout/ThreeColumnLayout'
 import { Toaster } from '@/components/ui/toaster'
 import { useSceneGeneration } from '@/hooks/useSceneGeneration'
 import { useUpdateChecker } from '@/hooks/useUpdateChecker'
+import { useShortcuts } from '@/hooks/useShortcuts'
 import MainMode from '@/pages/MainMode'
 import SceneMode from '@/pages/SceneMode'
 import SceneDetail from '@/pages/SceneDetail'
@@ -12,10 +13,11 @@ import Library from '@/pages/Library'
 import Settings from '@/pages/Settings'
 import ToolsMode from '@/pages/ToolsMode'
 
-function App() {
+function AppContent() {
     // Scene generation hook at App level - persists across page navigation
     useSceneGeneration()
     useUpdateChecker()
+    useShortcuts()
 
     // Disable right-click globally except for allowed elements
     useEffect(() => {
@@ -36,18 +38,24 @@ function App() {
     }, [])
 
     return (
+        <ThreeColumnLayout>
+            <Routes>
+                <Route path="/" element={<MainMode />} />
+                <Route path="/scenes" element={<SceneMode />} />
+                <Route path="/scenes/:id" element={<SceneDetail />} />
+                <Route path="/tools" element={<ToolsMode />} />
+                <Route path="/web" element={<WebView />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/settings" element={<Settings />} />
+            </Routes>
+        </ThreeColumnLayout>
+    )
+}
+
+function App() {
+    return (
         <BrowserRouter>
-            <ThreeColumnLayout>
-                <Routes>
-                    <Route path="/" element={<MainMode />} />
-                    <Route path="/scenes" element={<SceneMode />} />
-                    <Route path="/scenes/:id" element={<SceneDetail />} />
-                    <Route path="/tools" element={<ToolsMode />} />
-                    <Route path="/web" element={<WebView />} />
-                    <Route path="/library" element={<Library />} />
-                    <Route path="/settings" element={<Settings />} />
-                </Routes>
-            </ThreeColumnLayout>
+            <AppContent />
             <Toaster />
         </BrowserRouter>
     )

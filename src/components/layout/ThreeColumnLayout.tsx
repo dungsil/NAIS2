@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,7 @@ import { AnimatedNavBar } from './AnimatedNavBar'
 import { CustomTitleBar } from './CustomTitleBar'
 import { PresetDropdown } from '@/components/preset/PresetDropdown'
 import { useAuthStore } from '@/stores/auth-store'
+import { SHORTCUT_EVENTS } from '@/hooks/useShortcuts'
 import GlassSurface from '@/components/ui/GlassSurface'
 import {
     Home,
@@ -41,6 +42,19 @@ export function ThreeColumnLayout({ children }: ThreeColumnLayoutProps) {
     // Get active preset for header display
     const { presets, activePresetId } = usePresetStore()
     const activePreset = presets.find(p => p.id === activePresetId)
+
+    // Preset dialog state (for shortcut support)
+    const [presetDialogOpen, setPresetDialogOpen] = useState(false)
+
+    // 프리셋 다이얼로그 단축키 이벤트 수신
+    useEffect(() => {
+        const handleOpenPreset = () => setPresetDialogOpen(prev => !prev)
+
+        window.addEventListener(SHORTCUT_EVENTS.OPEN_PRESET_DIALOG, handleOpenPreset)
+        return () => {
+            window.removeEventListener(SHORTCUT_EVENTS.OPEN_PRESET_DIALOG, handleOpenPreset)
+        }
+    }, [])
 
     // Calculate cached vs uncached vibes
     const uncachedVibeCount = vibeImages.filter(v => !v.encodedVibe).length
@@ -92,7 +106,7 @@ export function ThreeColumnLayout({ children }: ThreeColumnLayoutProps) {
                             <h2 className="text-base font-semibold truncate max-w-[180px]">
                                 {activePreset?.name || t('preset.default', '기본')}
                             </h2>
-                            <PresetDropdown />
+                            <PresetDropdown open={presetDialogOpen} onOpenChange={setPresetDialogOpen} />
                         </div>
 
                         {/* Anlas Display */}
