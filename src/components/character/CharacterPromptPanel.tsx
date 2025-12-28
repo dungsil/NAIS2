@@ -14,6 +14,7 @@ import {
     User,
     SlidersHorizontal,
     Pencil,
+    Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,7 @@ import {
     ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { useCharacterPromptStore, CHARACTER_COLORS, CharacterPrompt } from '@/stores/character-prompt-store'
+import { useSettingsStore } from '@/stores/settings-store'
 import { cn } from '@/lib/utils'
 
 interface CharacterPromptPanelProps {
@@ -54,6 +56,16 @@ export function CharacterPromptPanel({ open, onOpenChange }: CharacterPromptPane
 
     const [expandedId, setExpandedId] = useState<string | null>(null)
     const [positionDialogOpen, setPositionDialogOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // 검색 필터링된 캐릭터 목록
+    const filteredCharacters = characters.filter(char => {
+        if (!searchQuery.trim()) return true
+        const query = searchQuery.toLowerCase()
+        const name = char.name?.toLowerCase() || ''
+        const promptPreview = char.prompt?.split(',')[0]?.trim().toLowerCase() || ''
+        return name.includes(query) || promptPreview.includes(query)
+    })
 
     // 패널 열릴 때 첫 번째 캐릭터 펼치기
     useEffect(() => {
@@ -159,6 +171,21 @@ export function CharacterPromptPanel({ open, onOpenChange }: CharacterPromptPane
                     </div>
                 </div>
 
+                {/* Search Input */}
+                {characters.length > 0 && (
+                    <div className="px-3 py-2 border-b border-border/30 shrink-0">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={t('characterPanel.search', '캐릭터 검색...')}
+                                className="h-8 pl-8 text-sm"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* Character Cards - Vertical List */}
                 <ScrollArea className="flex-1 min-h-0">
                     <div className="flex flex-col gap-2 p-3">
@@ -178,21 +205,31 @@ export function CharacterPromptPanel({ open, onOpenChange }: CharacterPromptPane
                                     </Button>
                                 </div>
                             </div>
+                        ) : filteredCharacters.length === 0 ? (
+                            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
+                                <div className="text-center">
+                                    <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                                    <p>{t('characterPanel.noResults', '검색 결과가 없습니다')}</p>
+                                </div>
+                            </div>
                         ) : (
-                            characters.map((char, index) => (
-                                <CharacterCard
-                                    key={char.id}
-                                    character={char}
-                                    index={index}
-                                    isExpanded={expandedId === char.id}
-                                    onToggleExpand={() => handleToggleExpand(char.id)}
-                                    onUpdate={(data) => updateCharacter(char.id, data)}
-                                    onRemove={() => removeCharacter(char.id)}
-                                    onToggleEnabled={() => toggleEnabled(char.id)}
-                                    onDuplicate={() => handleDuplicate(char)}
-                                    positionEnabled={positionEnabled}
-                                />
-                            ))
+                            filteredCharacters.map((char) => {
+                                const index = characters.findIndex(c => c.id === char.id)
+                                return (
+                                    <CharacterCard
+                                        key={char.id}
+                                        character={char}
+                                        index={index}
+                                        isExpanded={expandedId === char.id}
+                                        onToggleExpand={() => handleToggleExpand(char.id)}
+                                        onUpdate={(data) => updateCharacter(char.id, data)}
+                                        onRemove={() => removeCharacter(char.id)}
+                                        onToggleEnabled={() => toggleEnabled(char.id)}
+                                        onDuplicate={() => handleDuplicate(char)}
+                                        positionEnabled={positionEnabled}
+                                    />
+                                )
+                            })
                         )}
                     </div>
                 </ScrollArea>
@@ -235,6 +272,7 @@ function CharacterCard({
 }: CharacterCardProps) {
     const color = CHARACTER_COLORS[index % CHARACTER_COLORS.length]
     const { t } = useTranslation()
+    const promptFontSize = useSettingsStore(state => state.promptFontSize)
     
     // 로컬 상태로 입력값 관리 (렉 방지)
     const [localPrompt, setLocalPrompt] = useState(character.prompt)
@@ -361,8 +399,8 @@ function CharacterCard({
                                     value={localPrompt}
                                     onChange={(e) => handlePromptChange(e.target.value)}
                                     placeholder={t('characterPanel.promptPlaceholder', '캐릭터 외형 태그...')}
-                                    className="h-[80px] text-sm resize-none"
-                                    style={{ fontSize: '13px' }}
+                                    className="h-[180px] text-sm resize-none"
+                                    style={{ fontSize: `${promptFontSize}px` }}
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -373,8 +411,8 @@ function CharacterCard({
                                     value={localNegative}
                                     onChange={(e) => handleNegativeChange(e.target.value)}
                                     placeholder={t('characterPanel.negativePlaceholder', '제외할 태그...')}
-                                    className="h-[50px] text-sm border-destructive/20 resize-none"
-                                    style={{ fontSize: '13px' }}
+                                    className="h-[140px] text-sm border-destructive/20 resize-none"
+                                    style={{ fontSize: `${promptFontSize}px` }}
                                 />
                             </div>
                         </div>

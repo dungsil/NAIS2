@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from '@/components/ui/use-toast'
 import { useSceneStore } from '@/stores/scene-store'
 import { useGenerationStore } from '@/stores/generation-store'
-import { useFragmentStore } from '@/stores/fragment-store'
 import { useCharacterPromptStore } from '@/stores/character-prompt-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useAuthStore } from '@/stores/auth-store'
@@ -11,7 +10,6 @@ import { generateImage, generateImageStream, GenerationParams } from '@/services
 import { BaseDirectory, writeFile, mkdir, exists } from '@tauri-apps/plugin-fs'
 import { pictureDir, join } from '@tauri-apps/api/path'
 import { processWildcards } from '@/lib/wildcard-processor'
-
 import { useCharacterStore } from '@/stores/character-store'
 
 // Module-level variable to prevent concurrent processing across all hook instances
@@ -108,32 +106,23 @@ export function useSceneGeneration() {
                     genState.detailPrompt,
                 ].filter(p => p && p.trim())
 
-                const { fragments } = useFragmentStore.getState()
-
-                // Logic to replace <Fragment> tags
-                // Matches <FragmentName> and replaces with fragment.prompt
-                const processPrompts = (text: string) => {
-                    if (!text) return ""
-                    let processed = text
-
-                    fragments.forEach(frag => {
-                        const tag = `<${frag.label}>`
-                        if (processed.includes(tag)) {
-                            processed = processed.split(tag).join(frag.prompt)
-                        }
-                    })
-
-                    return processed
-                }
-
-                // Apply substitution to all parts
-                const processedParts = parts.map(p => processPrompts(p))
-                // Apply wildcard processing to final prompt (async)
-                const finalPrompt = await processWildcards(processedParts.join(', '))
+                // Apply wildcard/fragment processing to final prompt (async)
+                // processWildcards handles both <filename> fragments and (a/b/c) random selection
+                const finalPrompt = await processWildcards(parts.join(', '))
 
                 // Get Character & Vibe Data
                 const { characterImages, vibeImages } = characterStore
                 const { characters: characterPrompts } = characterPromptStore
+
+                // Apply fragment/wildcard substitution to character prompts (async)
+                const processedCharacterPrompts = await Promise.all(
+                    characterPrompts.filter(c => c.enabled).map(async c => ({
+                        prompt: await processWildcards(c.prompt),
+                        negative: await processWildcards(c.negative),
+                        enabled: c.enabled,
+                        position: c.position
+                    }))
+                )
 
                 // Determine Seed (Randomize if not locked)
                 const finalSeed = genState.seedLocked ? genState.seed : Math.floor(Math.random() * 4294967295)
@@ -172,15 +161,8 @@ export function useSceneGeneration() {
                     vibeStrength: vibeImages.map(img => img.strength),
                     preEncodedVibes: vibeImages.map(img => img.encodedVibe || null),
 
-                    // Character Prompts
-                    characterPrompts: characterPrompts
-                        .filter(c => c.enabled)
-                        .map(c => ({
-                            prompt: c.prompt,
-                            negative: c.negative,
-                            enabled: c.enabled,
-                            position: c.position
-                        }))
+                    // Character Prompts - already processed with fragment substitution
+                    characterPrompts: processedCharacterPrompts
                 }
 
                 let result
@@ -308,14 +290,21 @@ export function useSceneGeneration() {
                 // Reset Streaming Data
                 setStreamingData(null, null, 0)
 
-                // CRITICAL: Release processing lock BEFORE checking for next item
-                isProcessing = false
+                // Check if there are more scenes to process
+                const sceneState = useSceneStore.getState()
+                const hasMoreScenes = sceneState.isGenerating && 
+                    sceneState.getQueuedScenes(activePresetId).length > 0
 
-                // Apply configurable generation delay between scenes
-                const { generationDelay } = useSettingsStore.getState()
-                if (generationDelay > 0) {
-                    await new Promise(resolve => setTimeout(resolve, generationDelay))
+                // Apply generation delay only if there are more scenes
+                if (hasMoreScenes) {
+                    const { generationDelay } = useSettingsStore.getState()
+                    if (generationDelay > 0) {
+                        await new Promise(resolve => setTimeout(resolve, generationDelay))
+                    }
                 }
+
+                // CRITICAL: Release processing lock AFTER delay
+                isProcessing = false
 
                 // Continue Queue - only if still generating
                 if (useSceneStore.getState().isGenerating) {

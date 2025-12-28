@@ -6,7 +6,7 @@ import { useSettingsStore } from './settings-store'
 import { generateImage, generateImageStream } from '@/services/novelai-api'
 import { writeFile, mkdir, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { pictureDir, join } from '@tauri-apps/api/path'
-import { useFragmentStore } from './fragment-store'
+import { useWildcardStore } from './wildcard-store'
 import { useCharacterStore } from './character-store'
 import { useCharacterPromptStore } from './character-prompt-store'
 import { processWildcards } from '@/lib/wildcard-processor'
@@ -308,14 +308,8 @@ export const useGenerationStore = create<GenerationState>()(
                         const startTime = Date.now()
                         let finalPrompt = [basePrompt, inpaintingPrompt, additionalPrompt, detailPrompt].filter(Boolean).join(', ')
 
-                        // Fragment Substitution
-                        const fragments = useFragmentStore.getState().fragments
-                        finalPrompt = finalPrompt.replace(/<([^>]+)>/g, (match, label) => {
-                            const fragment = fragments.find(f => f.label === label)
-                            return fragment ? fragment.prompt : match
-                        })
-
-                        // Wildcard Processing (a/b/c → random selection) - async
+                        // Fragment Substitution - use processWildcards which handles <filename> syntax
+                        // Wildcard Processing (handles both <filename> fragments and (a/b/c) random selection) - async
                         finalPrompt = await processWildcards(finalPrompt)
 
                         // Get current seed (may be different for each batch)
@@ -330,6 +324,19 @@ export const useGenerationStore = create<GenerationState>()(
 
                         // Character Prompts (Position-based)
                         const { characters: characterPrompts, positionEnabled } = useCharacterPromptStore.getState()
+
+                        // Apply fragment/wildcard substitution to character prompts (async)
+                        const processedCharacterPrompts = await Promise.all(
+                            characterPrompts.filter(c => c.enabled).map(async c => {
+                                const processedPrompt = await processWildcards(c.prompt)
+                                const processedNegative = await processWildcards(c.negative)
+                                return {
+                                    ...c,
+                                    prompt: processedPrompt,
+                                    negative: processedNegative
+                                }
+                            })
+                        )
 
                         // Check if streaming is enabled
                         const { useStreaming } = useSettingsStore.getState()
@@ -389,7 +396,7 @@ export const useGenerationStore = create<GenerationState>()(
                             preEncodedVibes: vibeImages.map(img => img.encodedVibe || null),
 
                             // Character Prompts (V4 char_captions with positions)
-                            characterPrompts: characterPrompts.filter(c => c.enabled),
+                            characterPrompts: processedCharacterPrompts,
                             characterPositionEnabled: positionEnabled,
                         }
 
