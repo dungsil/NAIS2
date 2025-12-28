@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { check, Update } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Download, RefreshCw, Sparkles } from 'lucide-react'
-import { useUpdateStore, setCurrentUpdateObject } from '@/stores/update-store'
+import { useUpdateStore, setCurrentUpdateObject, installPendingUpdate } from '@/stores/update-store'
 
 export function useUpdateChecker() {
     const { t } = useTranslation()
@@ -41,8 +40,8 @@ export function useUpdateChecker() {
                 }
             })
 
-            // Store the update object for later installation
-            setCurrentUpdateObject(update)
+            // Store the update object for later installation (mark as downloaded)
+            setCurrentUpdateObject(update, true)
             setPendingUpdate({
                 version: update.version,
                 downloadedAt: Date.now(),
@@ -56,8 +55,16 @@ export function useUpdateChecker() {
                     <Button
                         size="sm"
                         onClick={async () => {
-                            await update.install()
-                            await relaunch()
+                            try {
+                                await installPendingUpdate()
+                            } catch (e) {
+                                console.error('Install failed:', e)
+                                toast({
+                                    title: t('update.failed', '설치 실패'),
+                                    description: String(e),
+                                    variant: 'destructive',
+                                })
+                            }
                         }}
                     >
                         <Sparkles className="h-4 w-4 mr-1" />
@@ -85,8 +92,9 @@ export function useUpdateChecker() {
                 if (update) {
                     // Check if we already have this version downloaded
                     if (pendingUpdate && pendingUpdate.version === update.version) {
-                        // Already downloaded, just show install option
-                        setCurrentUpdateObject(update)
+                        // Store update object but mark as NOT downloaded in this session
+                        // installPendingUpdate will use downloadAndInstall() to be safe
+                        setCurrentUpdateObject(update, false)
                         toast({
                             title: t('update.readyToInstall', '업데이트 설치 준비됨'),
                             description: t('update.version', { version: update.version }),
@@ -94,8 +102,16 @@ export function useUpdateChecker() {
                                 <Button
                                     size="sm"
                                     onClick={async () => {
-                                        await update.install()
-                                        await relaunch()
+                                        try {
+                                            await installPendingUpdate()
+                                        } catch (e) {
+                                            console.error('Install failed:', e)
+                                            toast({
+                                                title: t('update.failed', '설치 실패'),
+                                                description: String(e),
+                                                variant: 'destructive',
+                                            })
+                                        }
                                     }}
                                 >
                                     <Sparkles className="h-4 w-4 mr-1" />

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Update } from '@tauri-apps/plugin-updater'
+import { Update, check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 
 interface PendingUpdateInfo {
@@ -23,17 +23,31 @@ interface UpdateStore {
 
 // Store the actual Update object in memory (not persisted)
 let currentUpdateObject: Update | null = null
+// Track if download was completed in THIS session
+let downloadedInSession = false
 
-export const setCurrentUpdateObject = (update: Update | null) => {
+export const setCurrentUpdateObject = (update: Update | null, downloaded = false) => {
     currentUpdateObject = update
+    downloadedInSession = downloaded
 }
 
 export const getCurrentUpdateObject = () => currentUpdateObject
 
 export const installPendingUpdate = async () => {
-    if (currentUpdateObject) {
+    // If we have an Update object that was downloaded in this session, just install
+    if (currentUpdateObject && downloadedInSession) {
         await currentUpdateObject.install()
         await relaunch()
+    } else {
+        // Either no Update object, or it's a fresh one from check() that wasn't downloaded
+        // Use downloadAndInstall() to be safe
+        const update = currentUpdateObject || await check()
+        if (update) {
+            await update.downloadAndInstall()
+            await relaunch()
+        } else {
+            throw new Error('No update available')
+        }
     }
 }
 

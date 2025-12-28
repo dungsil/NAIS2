@@ -47,7 +47,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { getVersion } from '@tauri-apps/api/app'
-import { useUpdateStore, setCurrentUpdateObject } from '@/stores/update-store'
+import { useUpdateStore, setCurrentUpdateObject, installPendingUpdate } from '@/stores/update-store'
 
 const LANGUAGES = [
     { code: 'ko', name: '한국어' },
@@ -392,13 +392,11 @@ export default function Settings() {
                                                 size="sm"
                                                 onClick={async () => {
                                                     try {
-                                                        const update = await check()
-                                                        if (update) {
-                                                            await update.install()
-                                                            await relaunch()
-                                                        }
+                                                        toast({ title: t('update.installing', '설치 중...'), description: t('update.pleaseWait', '잠시만 기다려주세요') })
+                                                        await installPendingUpdate()
                                                     } catch (e) {
-                                                        toast({ title: t('update.failed', '설치 실패'), variant: 'destructive' })
+                                                        console.error('Install failed:', e)
+                                                        toast({ title: t('update.failed', '설치 실패'), description: String(e), variant: 'destructive' })
                                                     }
                                                 }}
                                             >
