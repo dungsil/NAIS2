@@ -576,6 +576,14 @@
         "usage": "使用法",
         "or": "または",
         "sequential": "シーケンシャル",
-        "contentPlaceholder": "1行に1つのオプションを入力してください。\n#で始まる行はコメントです。\n\n例：\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes"
+        "contentPlaceholder": "1行に1つのオプションを入力してください。\n#で始まる行はコメントです。\n\n例：\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes",
+        "importTxt": "txtファイルを読み込み",
+        "exportTxt": "txtファイルとして保存",
+        "imported": "読み込み完了",
+        "importedDesc": "{{count}}件のファイルを読み込みました。",
+        "exported": "保存完了",
+        "exportedDesc": "{{name}}.txtとして保存されました。",
+        "importError": "ファイルの読み込み中にエラーが発生しました。",
+        "exportError": "ファイルの保存中にエラーが発生しました。"
     }
 }

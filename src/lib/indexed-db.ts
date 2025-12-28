@@ -6,6 +6,8 @@ import { StateStorage } from 'zustand/middleware'
 const DB_NAME = 'nais2-db'
 const STORE_NAME = 'keyval'
 
+let dbInstance: IDBDatabase | null = null
+
 const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1)
     request.onupgradeneeded = (event) => {
@@ -14,7 +16,10 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
             db.createObjectStore(STORE_NAME)
         }
     }
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+        dbInstance = request.result
+        resolve(request.result)
+    }
     request.onerror = () => reject(request.error)
 })
 
@@ -49,4 +54,44 @@ export const indexedDBStorage: StateStorage = {
             request.onerror = () => reject(request.error)
         })
     },
+}
+
+/**
+ * 특정 키의 데이터 크기가 너무 크면 정리
+ * (대용량 wildcard 데이터 마이그레이션 이슈 해결용)
+ */
+export async function cleanupLargeData(key: string, maxSizeKB: number = 100): Promise<boolean> {
+    try {
+        const data = await indexedDBStorage.getItem(key)
+        if (data && data.length > maxSizeKB * 1024) {
+            console.warn(`[IndexedDB] ${key} data is too large (${(data.length / 1024).toFixed(1)}KB), cleaning up...`)
+            
+            // JSON 파싱해서 content 필드 제거
+            try {
+                const parsed = JSON.parse(data)
+                if (parsed.state?.files) {
+                    parsed.state.files = parsed.state.files.map((f: any) => {
+                        const { content, ...meta } = f
+                        return {
+                            ...meta,
+                            lineCount: Array.isArray(content) ? content.length : (meta.lineCount || 0)
+                        }
+                    })
+                    parsed.state._migrated = true
+                    await indexedDBStorage.setItem(key, JSON.stringify(parsed))
+                    console.log(`[IndexedDB] ${key} cleaned up successfully`)
+                    return true
+                }
+            } catch {
+                // JSON 파싱 실패하면 그냥 삭제
+                await indexedDBStorage.removeItem(key)
+                console.log(`[IndexedDB] ${key} removed due to parse error`)
+                return true
+            }
+        }
+        return false
+    } catch (error) {
+        console.error('[IndexedDB] cleanup error:', error)
+        return false
+    }
 }

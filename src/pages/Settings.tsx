@@ -614,7 +614,7 @@ export default function Settings() {
                                             onClick={handleSavePath}
                                             variant={(localSavePath !== savePath || isAbsolutePath !== useAbsolutePath) ? "default" : "outline"}
                                             className={(localSavePath !== savePath || isAbsolutePath !== useAbsolutePath)
-                                                ? "animate-pulse bg-primary hover:bg-primary/90 text-primary-foreground"
+                                                ? "animate-pulse bg-yellow-500 hover:bg-yellow-600 text-black shadow-lg shadow-yellow-500/50"
                                                 : ""}
                                         >
                                             <Save className="h-4 w-4 mr-2" />
@@ -680,7 +680,7 @@ export default function Settings() {
                                             onClick={handleSaveLibraryPath}
                                             variant={(localLibraryPath !== libraryPath || isAbsoluteLibraryPath !== useAbsoluteLibraryPath) ? "default" : "outline"}
                                             className={(localLibraryPath !== libraryPath || isAbsoluteLibraryPath !== useAbsoluteLibraryPath)
-                                                ? "animate-pulse bg-primary hover:bg-primary/90 text-primary-foreground"
+                                                ? "animate-pulse bg-yellow-500 hover:bg-yellow-600 text-black shadow-lg shadow-yellow-500/50"
                                                 : ""}
                                         >
                                             <Save className="h-4 w-4 mr-2" />

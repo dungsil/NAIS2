@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AutocompleteTextarea } from '@/components/ui/AutocompleteTextarea'
-import { useWildcardStore, WildcardFile } from '@/stores/wildcard-store'
+import { useWildcardStore, WildcardFileMeta } from '@/stores/wildcard-store'
 import {
     Plus,
     Trash2,
@@ -36,6 +36,8 @@ import {
     RotateCcw,
     Info,
     Puzzle,
+    Upload,
+    Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/use-toast'
@@ -47,15 +49,18 @@ interface FragmentPromptDialogProps {
 
 export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialogProps) {
     const { t } = useTranslation()
-    const {
-        files,
-        addFile,
-        updateFile,
-        deleteFile,
-        duplicateFile,
-        getFolders,
-        resetSequentialCounter,
-    } = useWildcardStore()
+    
+    // 선택적 구독으로 성능 최적화
+    const files = useWildcardStore(state => state.files)
+    const addFile = useWildcardStore(state => state.addFile)
+    const updateFile = useWildcardStore(state => state.updateFile)
+    const deleteFile = useWildcardStore(state => state.deleteFile)
+    const duplicateFile = useWildcardStore(state => state.duplicateFile)
+    const getFolders = useWildcardStore(state => state.getFolders)
+    const resetSequentialCounter = useWildcardStore(state => state.resetSequentialCounter)
+    const importFromText = useWildcardStore(state => state.importFromText)
+    const exportToText = useWildcardStore(state => state.exportToText)
+    const loadFileContent = useWildcardStore(state => state.loadFileContent)
 
     const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
     const [editingContent, setEditingContent] = useState('')
@@ -79,22 +84,24 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
     const folders = getFolders()
     const selectedFile = files.find(f => f.id === selectedFileId)
 
-    // 파일 선택 시 에디터에 내용 로드
+    // 파일 선택 시 에디터에 내용 로드 (비동기)
     useEffect(() => {
         if (selectedFile) {
-            setEditingContent(selectedFile.content.join('\n'))
-            setEditingName(selectedFile.name)
-            setEditingFolder(selectedFile.folder)
-            setHasChanges(false)
+            loadFileContent(selectedFile.id).then(content => {
+                setEditingContent(content.join('\n'))
+                setEditingName(selectedFile.name)
+                setEditingFolder(selectedFile.folder)
+                setHasChanges(false)
+            })
         }
-    }, [selectedFile])
+    }, [selectedFile, loadFileContent])
 
-    const handleSelectFile = (file: WildcardFile) => {
+    const handleSelectFile = (file: WildcardFileMeta) => {
         // 변경사항이 있어도 저장 안 하고 넘어감 (저장 버튼 강조로 유도)
         setSelectedFileId(file.id)
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!selectedFileId) return
 
         const lines = editingContent
@@ -102,7 +109,7 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
             .map(line => line.trim())
             .filter(line => line.length > 0 && !line.startsWith('#'))
 
-        updateFile(selectedFileId, {
+        await updateFile(selectedFileId, {
             name: editingName.trim(),
             folder: editingFolder.trim(),
             content: lines,
@@ -115,14 +122,14 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
         })
     }
 
-    const handleCreateFile = (folder: string = '') => {
-        const newFile = addFile(`fragment_${Date.now()}`, folder, [])
+    const handleCreateFile = async (folder: string = '') => {
+        const newFile = await addFile(`fragment_${Date.now()}`, folder, [])
         setSelectedFileId(newFile.id)
         setExpandedFolders(prev => new Set([...prev, folder]))
     }
 
-    const handleDeleteFile = (id: string) => {
-        deleteFile(id)
+    const handleDeleteFile = async (id: string) => {
+        await deleteFile(id)
         if (selectedFileId === id) {
             setSelectedFileId(null)
             setEditingContent('')
@@ -131,17 +138,19 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
         }
     }
 
-    const handleDuplicateFile = (id: string) => {
-        const newFile = duplicateFile(id)
+    const handleDuplicateFile = async (id: string) => {
+        const newFile = await duplicateFile(id)
         if (newFile) {
             setSelectedFileId(newFile.id)
         }
     }
 
-    const handleDeleteFolder = (folderName: string) => {
+    const handleDeleteFolder = async (folderName: string) => {
         // 폴더 내 모든 파일 삭제
         const folderFiles = files.filter(f => f.folder === folderName)
-        folderFiles.forEach(f => deleteFile(f.id))
+        for (const f of folderFiles) {
+            await deleteFile(f.id)
+        }
         
         // 선택된 파일이 해당 폴더에 있었다면 선택 해제
         if (selectedFile && selectedFile.folder === folderName) {
@@ -152,10 +161,10 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
         }
     }
 
-    const handleCreateFolder = () => {
+    const handleCreateFolder = async () => {
         if (!newFolderName.trim()) return
         setExpandedFolders(prev => new Set([...prev, newFolderName.trim()]))
-        handleCreateFile(newFolderName.trim())
+        await handleCreateFile(newFolderName.trim())
         setNewFolderName('')
         setIsCreatingFolder(false)
     }
@@ -180,8 +189,86 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
         })
     }
 
+    // txt 파일 불러오기
+    const handleImportTxt = async () => {
+        try {
+            const { open } = await import('@tauri-apps/plugin-dialog')
+            const { readTextFile } = await import('@tauri-apps/plugin-fs')
+
+            const selected = await open({
+                multiple: true,
+                filters: [{ name: 'Text Files', extensions: ['txt'] }],
+            })
+
+            if (!selected) return
+
+            const filePaths = Array.isArray(selected) ? selected : [selected]
+            let importedCount = 0
+
+            for (const filePath of filePaths) {
+                const content = await readTextFile(filePath)
+                // 파일 이름에서 확장자 제거
+                const fileName = filePath.split(/[/\\]/).pop()?.replace(/\.txt$/i, '') || `import_${Date.now()}`
+                const newFile = await importFromText(fileName, content, editingFolder || '')
+                if (newFile) {
+                    importedCount++
+                    // 마지막 파일 선택
+                    setSelectedFileId(newFile.id)
+                }
+            }
+
+            if (importedCount > 0) {
+                toast({
+                    title: t('fragment.imported', '불러오기 완료'),
+                    description: t('fragment.importedDesc', '{{count}}개 파일을 불러왔습니다.', { count: importedCount }),
+                })
+            }
+        } catch (error) {
+            console.error('Failed to import txt:', error)
+            toast({
+                variant: 'destructive',
+                title: t('common.error', '오류'),
+                description: t('fragment.importError', '파일을 불러오는 중 오류가 발생했습니다.'),
+            })
+        }
+    }
+
+    // txt 파일 내보내기
+    const handleExportTxt = async () => {
+        if (!selectedFileId || !selectedFile) return
+
+        try {
+            const { save } = await import('@tauri-apps/plugin-dialog')
+            const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+
+            const content = await exportToText(selectedFileId)
+            if (content === null) return
+
+            const filePath = await save({
+                defaultPath: `${selectedFile.name}.txt`,
+                filters: [{ name: 'Text Files', extensions: ['txt'] }],
+            })
+
+            if (!filePath) return
+
+            await writeTextFile(filePath, content)
+
+            toast({
+                title: t('fragment.exported', '내보내기 완료'),
+                description: t('fragment.exportedDesc', '{{name}}.txt 파일로 저장되었습니다.', { name: selectedFile.name }),
+            })
+        } catch (error) {
+            console.error('Failed to export txt:', error)
+            toast({
+                variant: 'destructive',
+                title: t('common.error', '오류'),
+                description: t('fragment.exportError', '파일을 저장하는 중 오류가 발생했습니다.'),
+            })
+        }
+    }
+
     // 폴더별 파일 그룹화
-    const filesByFolder: Record<string, WildcardFile[]> = { '': [] }
+    const filesByFolder: Record<string, WildcardFileMeta[]> = { '': [] }
     folders.forEach(f => { filesByFolder[f] = [] })
     files.forEach(f => {
         const folder = f.folder || ''
@@ -253,6 +340,15 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
                                 title={t('fragment.resetCounters', '순차 카운터 리셋')}
                             >
                                 <RotateCcw className="h-4 w-4" />
+                            </Button>
+                            <div className="flex-1" />
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleImportTxt}
+                                title={t('fragment.importTxt', 'txt 파일 불러오기')}
+                            >
+                                <Upload className="h-4 w-4" />
                             </Button>
                         </div>
 
@@ -343,11 +439,19 @@ export function FragmentPromptDialog({ open, onOpenChange }: FragmentPromptDialo
                                     />
                                     <div className="flex-1" />
                                     <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleExportTxt}
+                                        title={t('fragment.exportTxt', 'txt 파일로 내보내기')}
+                                    >
+                                        <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button
                                         size="sm"
                                         onClick={handleSave}
                                         className={cn(
                                             "gap-1 transition-all",
-                                            hasChanges && "bg-primary text-primary-foreground animate-pulse shadow-lg shadow-primary/50"
+                                            hasChanges && "bg-yellow-500 hover:bg-yellow-600 text-black animate-pulse shadow-lg shadow-yellow-500/50"
                                         )}
                                     >
                                         <Save className="h-4 w-4" />
@@ -407,7 +511,7 @@ function FileItem({
     onDelete,
     onDuplicate,
 }: {
-    file: WildcardFile
+    file: WildcardFileMeta
     isSelected: boolean
     onSelect: () => void
     onDelete: () => void
@@ -428,7 +532,7 @@ function FileItem({
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm flex-1 truncate">{file.name}</span>
                     <span className="text-xs text-muted-foreground">
-                        ({file.content.length})
+                        ({file.lineCount})
                     </span>
                 </div>
             </ContextMenuTrigger>
@@ -461,11 +565,11 @@ function FolderItem({
     onAddFile,
 }: {
     folder: string
-    files: WildcardFile[]
+    files: WildcardFileMeta[]
     isExpanded: boolean
     selectedFileId: string | null
     onToggle: () => void
-    onSelectFile: (file: WildcardFile) => void
+    onSelectFile: (file: WildcardFileMeta) => void
     onDeleteFile: (id: string) => void
     onDuplicateFile: (id: string) => void
     onDeleteFolder: () => void

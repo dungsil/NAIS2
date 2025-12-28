@@ -280,8 +280,8 @@ export const useGenerationStore = create<GenerationState>()(
                             return fragment ? fragment.prompt : match
                         })
 
-                        // Wildcard Processing (a/b/c → random selection)
-                        finalPrompt = processWildcards(finalPrompt)
+                        // Wildcard Processing (a/b/c → random selection) - async
+                        finalPrompt = await processWildcards(finalPrompt)
 
                         // Get current seed (may be different for each batch)
                         const currentSeed = get().seedLocked ? seed : (i === 0 ? seed : Math.floor(Math.random() * 4294967295))

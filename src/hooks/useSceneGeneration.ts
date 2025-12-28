@@ -128,8 +128,8 @@ export function useSceneGeneration() {
 
                 // Apply substitution to all parts
                 const processedParts = parts.map(p => processPrompts(p))
-                // Apply wildcard processing to final prompt
-                const finalPrompt = processWildcards(processedParts.join(', '))
+                // Apply wildcard processing to final prompt (async)
+                const finalPrompt = await processWildcards(processedParts.join(', '))
 
                 // Get Character & Vibe Data
                 const { characterImages, vibeImages } = characterStore

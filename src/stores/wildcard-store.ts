@@ -2,41 +2,145 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { indexedDBStorage } from '@/lib/indexed-db'
 
-export interface WildcardFile {
+// 별도 IndexedDB for wildcard content (대용량 데이터)
+const CONTENT_DB_NAME = 'nais2-wildcard-content'
+const CONTENT_STORE_NAME = 'contents'
+
+let contentDbPromise: Promise<IDBDatabase> | null = null
+
+function getContentDb(): Promise<IDBDatabase> {
+    if (!contentDbPromise) {
+        contentDbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open(CONTENT_DB_NAME, 1)
+            request.onupgradeneeded = (event) => {
+                const db = (event.target as IDBOpenDBRequest).result
+                if (!db.objectStoreNames.contains(CONTENT_STORE_NAME)) {
+                    db.createObjectStore(CONTENT_STORE_NAME)
+                }
+            }
+            request.onsuccess = () => resolve(request.result)
+            request.onerror = () => reject(request.error)
+        })
+    }
+    return contentDbPromise
+}
+
+// Content 저장/조회 함수
+async function saveContent(id: string, content: string[]): Promise<void> {
+    const db = await getContentDb()
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(CONTENT_STORE_NAME, 'readwrite')
+        const store = transaction.objectStore(CONTENT_STORE_NAME)
+        const request = store.put(content, id)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+    })
+}
+
+async function loadContent(id: string): Promise<string[]> {
+    const db = await getContentDb()
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(CONTENT_STORE_NAME, 'readonly')
+        const store = transaction.objectStore(CONTENT_STORE_NAME)
+        const request = store.get(id)
+        request.onsuccess = () => resolve(request.result || [])
+        request.onerror = () => reject(request.error)
+    })
+}
+
+async function deleteContent(id: string): Promise<void> {
+    const db = await getContentDb()
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(CONTENT_STORE_NAME, 'readwrite')
+        const store = transaction.objectStore(CONTENT_STORE_NAME)
+        const request = store.delete(id)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+    })
+}
+
+// 모든 content 삭제 (초기화용)
+async function clearAllContent(): Promise<void> {
+    const db = await getContentDb()
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(CONTENT_STORE_NAME, 'readwrite')
+        const store = transaction.objectStore(CONTENT_STORE_NAME)
+        const request = store.clear()
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+    })
+}
+
+// 메타데이터만 저장 (content 제외)
+export interface WildcardFileMeta {
     id: string
     name: string           // 파일 이름 (확장자 제외) - 와일드카드 참조명
     folder: string         // 폴더 경로 (빈 문자열이면 루트)
-    content: string[]      // 각 줄의 내용
+    lineCount: number      // 라인 수 (UI 표시용)
     createdAt: number
     updatedAt: number
 }
 
-interface WildcardState {
-    // 와일드카드 파일 목록
-    files: WildcardFile[]
+// 전체 파일 인터페이스 (content 포함 - 에디터용)
+export interface WildcardFile extends WildcardFileMeta {
+    content: string[]
+}
 
-    // 순차 와일드카드용 카운터 (세션 간 유지)
+// 메모리 캐시 (자주 접근하는 content)
+const contentCache = new Map<string, string[]>()
+const MAX_CACHE_SIZE = 20
+
+function addToCache(id: string, content: string[]) {
+    if (contentCache.size >= MAX_CACHE_SIZE) {
+        // 가장 오래된 항목 제거
+        const firstKey = contentCache.keys().next().value
+        if (firstKey) contentCache.delete(firstKey)
+    }
+    contentCache.set(id, content)
+}
+
+interface WildcardState {
+    // 메타데이터 목록 (content 제외)
+    files: WildcardFileMeta[]
+
+    // 순차 와일드카드용 카운터
     sequentialCounters: Record<string, number>
 
+    // 초기화 상태
+    _initialized: boolean
+    
+    // 마이그레이션 완료 여부 (persist됨)
+    _migrated: boolean
+
     // Actions - CRUD
-    addFile: (name: string, folder?: string, content?: string[]) => WildcardFile
-    updateFile: (id: string, updates: Partial<Pick<WildcardFile, 'name' | 'folder' | 'content'>>) => void
-    deleteFile: (id: string) => void
-    duplicateFile: (id: string) => WildcardFile | null
+    addFile: (name: string, folder?: string, content?: string[]) => Promise<WildcardFile>
+    updateFile: (id: string, updates: Partial<Pick<WildcardFile, 'name' | 'folder' | 'content'>>) => Promise<void>
+    deleteFile: (id: string) => Promise<void>
+    duplicateFile: (id: string) => Promise<WildcardFile | null>
+
+    // Actions - Content 로드 (비동기)
+    loadFileContent: (id: string) => Promise<string[]>
+    getFileWithContent: (id: string) => Promise<WildcardFile | null>
 
     // Actions - Content
-    getFileByPath: (path: string) => WildcardFile | undefined
-    getRandomLine: (path: string) => string | null
-    getSequentialLine: (path: string) => string | null
+    getFileByPath: (path: string) => WildcardFileMeta | undefined
+    getRandomLine: (path: string) => Promise<string | null>
+    getSequentialLine: (path: string) => Promise<string | null>
     resetSequentialCounter: (path?: string) => void
 
     // Actions - Folder
     getFolders: () => string[]
-    getFilesInFolder: (folder: string) => WildcardFile[]
+    getFilesInFolder: (folder: string) => WildcardFileMeta[]
 
     // Import/Export
-    importFromText: (name: string, text: string, folder?: string) => WildcardFile
-    exportToText: (id: string) => string | null
+    importFromText: (name: string, text: string, folder?: string) => Promise<WildcardFile>
+    exportToText: (id: string) => Promise<string | null>
+
+    // Clear all data
+    clearAll: () => Promise<void>
+
+    // Migration
+    _migrateOldData: () => Promise<void>
 }
 
 export const useWildcardStore = create<WildcardState>()(
@@ -44,59 +148,113 @@ export const useWildcardStore = create<WildcardState>()(
         (set, get) => ({
             files: [],
             sequentialCounters: {},
+            _initialized: false,
+            _migrated: false,
 
-            addFile: (name, folder = '', content = []) => {
-                const newFile: WildcardFile = {
-                    id: Date.now().toString(),
+            addFile: async (name, folder = '', content = []) => {
+                const id = Date.now().toString()
+                const newFileMeta: WildcardFileMeta = {
+                    id,
                     name: name.trim(),
                     folder: folder.trim(),
-                    content,
+                    lineCount: content.length,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                 }
+
+                // content를 별도 DB에 저장
+                await saveContent(id, content)
+                addToCache(id, content)
+
                 set((state) => ({
-                    files: [...state.files, newFile]
+                    files: [...state.files, newFileMeta]
                 }))
-                return newFile
+
+                return { ...newFileMeta, content }
             },
 
-            updateFile: (id, updates) => {
+            updateFile: async (id, updates) => {
+                const file = get().files.find(f => f.id === id)
+                if (!file) return
+
+                let lineCount = file.lineCount
+
+                if (updates.content !== undefined) {
+                    await saveContent(id, updates.content)
+                    addToCache(id, updates.content)
+                    lineCount = updates.content.length
+                }
+
                 set((state) => ({
                     files: state.files.map((f) =>
                         f.id === id
-                            ? { ...f, ...updates, updatedAt: Date.now() }
+                            ? {
+                                ...f,
+                                name: updates.name !== undefined ? updates.name : f.name,
+                                folder: updates.folder !== undefined ? updates.folder : f.folder,
+                                lineCount,
+                                updatedAt: Date.now()
+                            }
                             : f
                     )
                 }))
             },
 
-            deleteFile: (id) => {
+            deleteFile: async (id) => {
+                await deleteContent(id)
+                contentCache.delete(id)
+
                 set((state) => ({
                     files: state.files.filter((f) => f.id !== id)
                 }))
             },
 
-            duplicateFile: (id) => {
-                const file = get().files.find(f => f.id === id)
-                if (!file) return null
+            duplicateFile: async (id) => {
+                const fileMeta = get().files.find(f => f.id === id)
+                if (!fileMeta) return null
 
-                const newFile: WildcardFile = {
-                    id: Date.now().toString(),
-                    name: `${file.name}_copy`,
-                    folder: file.folder,
-                    content: [...file.content],
+                const content = await get().loadFileContent(id)
+                const newId = Date.now().toString()
+
+                const newFileMeta: WildcardFileMeta = {
+                    id: newId,
+                    name: `${fileMeta.name}_copy`,
+                    folder: fileMeta.folder,
+                    lineCount: content.length,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                 }
+
+                await saveContent(newId, content)
+                addToCache(newId, content)
+
                 set((state) => ({
-                    files: [...state.files, newFile]
+                    files: [...state.files, newFileMeta]
                 }))
-                return newFile
+
+                return { ...newFileMeta, content }
+            },
+
+            loadFileContent: async (id) => {
+                // 캐시 확인
+                const cached = contentCache.get(id)
+                if (cached) return cached
+
+                const content = await loadContent(id)
+                addToCache(id, content)
+                return content
+            },
+
+            getFileWithContent: async (id) => {
+                const fileMeta = get().files.find(f => f.id === id)
+                if (!fileMeta) return null
+
+                const content = await get().loadFileContent(id)
+                return { ...fileMeta, content }
             },
 
             getFileByPath: (path) => {
                 const { files } = get()
-                // path 형식: "folder/name" 또는 "name"
                 const normalizedPath = path.trim().toLowerCase()
 
                 return files.find(f => {
@@ -107,21 +265,27 @@ export const useWildcardStore = create<WildcardState>()(
                 })
             },
 
-            getRandomLine: (path) => {
-                const file = get().getFileByPath(path)
-                if (!file || file.content.length === 0) return null
+            getRandomLine: async (path) => {
+                const fileMeta = get().getFileByPath(path)
+                if (!fileMeta) return null
 
-                const randomIndex = Math.floor(Math.random() * file.content.length)
-                return file.content[randomIndex]
+                const content = await get().loadFileContent(fileMeta.id)
+                if (content.length === 0) return null
+
+                const randomIndex = Math.floor(Math.random() * content.length)
+                return content[randomIndex]
             },
 
-            getSequentialLine: (path) => {
-                const file = get().getFileByPath(path)
-                if (!file || file.content.length === 0) return null
+            getSequentialLine: async (path) => {
+                const fileMeta = get().getFileByPath(path)
+                if (!fileMeta) return null
+
+                const content = await get().loadFileContent(fileMeta.id)
+                if (content.length === 0) return null
 
                 const { sequentialCounters } = get()
                 const currentIndex = sequentialCounters[path] || 0
-                const line = file.content[currentIndex % file.content.length]
+                const line = content[currentIndex % content.length]
 
                 // 카운터 증가
                 set((state) => ({
@@ -160,24 +324,87 @@ export const useWildcardStore = create<WildcardState>()(
                 return files.filter(f => f.folder === folder)
             },
 
-            importFromText: (name, text, folder = '') => {
+            importFromText: async (name, text, folder = '') => {
                 const lines = text
                     .split('\n')
                     .map(line => line.trim())
-                    .filter(line => line.length > 0 && !line.startsWith('#'))  // 주석 제외
+                    .filter(line => line.length > 0 && !line.startsWith('#'))
 
                 return get().addFile(name, folder, lines)
             },
 
-            exportToText: (id) => {
-                const file = get().files.find(f => f.id === id)
-                if (!file) return null
-                return file.content.join('\n')
+            exportToText: async (id) => {
+                const content = await get().loadFileContent(id)
+                if (!content || content.length === 0) return null
+                return content.join('\n')
+            },
+
+            // 모든 데이터 삭제 (초기화)
+            clearAll: async () => {
+                await clearAllContent()
+                contentCache.clear()
+                set({
+                    files: [],
+                    sequentialCounters: {},
+                    _migrated: true,
+                    _initialized: true,
+                })
+                console.log('[WildcardStore] All data cleared')
+            },
+
+            // 기존 데이터 마이그레이션 (content가 메타데이터에 포함되어 있는 경우)
+            _migrateOldData: async () => {
+                const { files, _initialized } = get()
+                if (_initialized) return
+
+                // content 필드가 있는 파일만 마이그레이션 대상
+                const filesToMigrate = files.filter((f: any) => Array.isArray(f.content))
+                
+                if (filesToMigrate.length > 0) {
+                    console.log(`[WildcardStore] Migrating ${filesToMigrate.length} files to new storage format...`)
+                    
+                    for (const file of filesToMigrate) {
+                        const content = (file as any).content as string[]
+                        if (content && content.length > 0) {
+                            await saveContent(file.id, content)
+                        }
+                    }
+
+                    // 메타데이터에서 content 제거하고 _migrated 플래그 설정
+                    set((state) => ({
+                        files: state.files.map((f: any) => {
+                            const { content, ...meta } = f
+                            return {
+                                ...meta,
+                                lineCount: Array.isArray(content) ? content.length : (meta.lineCount || 0)
+                            }
+                        }),
+                        _initialized: true,
+                        _migrated: true
+                    }))
+
+                    console.log('[WildcardStore] Migration complete')
+                } else {
+                    set({ _initialized: true })
+                }
             },
         }),
         {
             name: 'nais2-wildcards',
             storage: createJSONStorage(() => indexedDBStorage),
+            partialize: (state) => ({
+                files: state.files,
+                sequentialCounters: state.sequentialCounters,
+                _migrated: state._migrated,  // 마이그레이션 완료 여부 저장
+            }),
+            onRehydrateStorage: () => (state) => {
+                // 복원 후 마이그레이션 실행 (마이그레이션 안 됐을 때만)
+                if (state && !state._migrated) {
+                    state._migrateOldData()
+                } else if (state) {
+                    state._initialized = true
+                }
+            },
         }
     )
 )

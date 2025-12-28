@@ -555,7 +555,15 @@
         "usage": "Usage",
         "or": "or",
         "sequential": "sequential",
-        "contentPlaceholder": "Enter one option per line.\nLines starting with # are comments.\n\nExample:\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes"
+        "contentPlaceholder": "Enter one option per line.\nLines starting with # are comments.\n\nExample:\nlong hair, blue eyes\nshort hair, red eyes\ntwintails, green eyes",
+        "importTxt": "Import txt file",
+        "exportTxt": "Export as txt file",
+        "imported": "Import Complete",
+        "importedDesc": "{{count}} file(s) imported.",
+        "exported": "Export Complete",
+        "exportedDesc": "Saved as {{name}}.txt.",
+        "importError": "An error occurred while importing the file.",
+        "exportError": "An error occurred while saving the file."
     },
     "characterPanel": {
         "title": "Character Prompts",

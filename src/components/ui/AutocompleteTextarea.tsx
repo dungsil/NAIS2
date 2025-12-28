@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, Fragment, KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, Fragment, KeyboardEvent, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Editor from 'react-simple-code-editor'
 import { getCaretCoordinates } from '@/utils/caret-coords'
 import { cn } from '@/lib/utils'
 import tagsData from '@/assets/tags.json'
+import { useWildcardStore } from '@/stores/wildcard-store'
 
 // --- Types ---
 interface Tag {
@@ -11,6 +12,14 @@ interface Tag {
     value: string
     count: number
     type: string
+}
+
+interface SuggestionItem {
+    label: string
+    value: string
+    count?: number
+    type: string
+    _lower?: string
 }
 
 interface AutocompleteTextareaProps {
@@ -26,6 +35,20 @@ interface AutocompleteTextareaProps {
 
 // --- Constants ---
 const ALL_TAGS = tagsData as Tag[]
+
+// 사전 처리: 소문자 변환된 label 캐싱 (최초 1회만)
+const TAGS_WITH_LOWER = ALL_TAGS.map(tag => ({
+    ...tag,
+    _lower: tag.label.toLowerCase()
+}))
+
+// 첫 글자별 인덱스 생성 (O(1) 접근)
+const TAG_INDEX: Record<string, typeof TAGS_WITH_LOWER> = {}
+for (const tag of TAGS_WITH_LOWER) {
+    const firstChar = tag._lower[0] || '_'
+    if (!TAG_INDEX[firstChar]) TAG_INDEX[firstChar] = []
+    TAG_INDEX[firstChar].push(tag)
+}
 
 // Single source of truth for Typography to ensure Textarea and Pre match perfectly.
 const TYPOGRAPHY = {
@@ -49,12 +72,26 @@ export function AutocompleteTextarea({
     const textareaRef = useRef<HTMLTextAreaElement | null>(null)
     const containerRef = useRef<HTMLDivElement>(null) // The scrolling container
     const listRef = useRef<HTMLDivElement>(null)
+    
+    // onChange 디바운스를 위한 타이머 ref
+    const onChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Wildcard Store 구독 (조각 프롬프트 목록)
+    const wildcardFiles = useWildcardStore(state => state.files)
 
     // --- State ---
-    const [suggestions, setSuggestions] = useState<Tag[]>([])
+    // 내부 state로 즉시 렌더링 (uncontrolled 방식)
+    const [internalValue, setInternalValue] = useState(value)
+    const [suggestions, setSuggestions] = useState<SuggestionItem[]>([])
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [isVisible, setIsVisible] = useState(false)
     const [coords, setCoords] = useState({ top: 0, left: 0 })
+    const [suggestionMode, setSuggestionMode] = useState<'tag' | 'wildcard'>('tag')
+
+    // 외부 value가 변경되면 내부 state 동기화 (예: 프리셋 로드)
+    useEffect(() => {
+        setInternalValue(value)
+    }, [value])
 
     // --- Helpers ---
     const getCurrentWord = (text: string, position: number) => {
@@ -63,66 +100,168 @@ export function AutocompleteTextarea({
         return match ? match[0].trimStart() : ''
     }
 
+    // `<` 이후의 와일드카드 이름 추출
+    const getWildcardWord = (text: string, position: number): string | null => {
+        const left = text.slice(0, position)
+        // `<` 이후의 텍스트 찾기 (아직 닫히지 않은 경우)
+        const match = left.match(/<([^<>]*)$/)
+        return match ? match[1] : null
+    }
+
     // --- Autocomplete Logic ---
-    const checkAutocomplete = (val: string, el: HTMLTextAreaElement) => {
+    const checkAutocomplete = useCallback((val: string, el: HTMLTextAreaElement) => {
+
         const pos = el.selectionEnd || val.length
-        const word = getCurrentWord(val, pos)
-
-        if (word.length >= 2) {
-            const lower = word.toLowerCase()
-            const matches = ALL_TAGS.filter(tag => {
-                if (tag.type === 'artist') return tag.label.toLowerCase().includes(lower)
-                return tag.label.toLowerCase().startsWith(lower) || tag.label.toLowerCase().includes(lower)
-            }).slice(0, maxSuggestions)
-
+        
+        // 1. 조각 모드 체크 (`<` 이후)
+        const wildcardWord = getWildcardWord(val, pos)
+        if (wildcardWord !== null) {
+            // 조각 프롬프트 자동완성 (즉시, 디바운스 없음)
+            const lower = wildcardWord.toLowerCase()
+            const matches: SuggestionItem[] = []
+            
+            for (const file of wildcardFiles) {
+                if (matches.length >= maxSuggestions) break
+                const fullPath = file.folder ? `${file.folder}/${file.name}` : file.name
+                const fullPathLower = fullPath.toLowerCase()
+                
+                // 빈 문자열이면 모든 파일 표시, 아니면 필터링
+                if (wildcardWord === '' || fullPathLower.includes(lower)) {
+                    matches.push({
+                        label: fullPath,
+                        value: fullPath,
+                        count: file.lineCount,
+                        type: 'fragment'
+                    })
+                }
+            }
+            
             if (matches.length > 0) {
                 setSuggestions(matches)
+                setSuggestionMode('wildcard')
                 setSelectedIndex(0)
 
                 const rect = el.getBoundingClientRect()
                 const caret = getCaretCoordinates(el, pos)
 
                 setCoords({
-                    top: rect.top + window.scrollY + caret.top + 24, // Place below line
+                    top: rect.top + window.scrollY + caret.top + 24,
                     left: rect.left + window.scrollX + caret.left
                 })
                 setIsVisible(true)
-                return
+            } else {
+                setIsVisible(false)
+            }
+            return
+        }
+        
+        // 2. 일반 태그 자동완성
+        const word = getCurrentWord(val, pos)
+        if (word.length < 2) {
+            setIsVisible(false)
+            return
+        }
+
+        // 즉시 검색 (디바운스 없음 - 빠른 반응성)
+        const lower = word.toLowerCase()
+        const firstChar = lower[0] || ''
+        
+        // 인덱스 기반 검색 (해당 첫 글자 태그만 검색)
+        const indexedTags = TAG_INDEX[firstChar] || []
+        const matches: SuggestionItem[] = []
+        
+        // 1단계: 인덱스된 태그에서 startsWith 매칭
+        for (const tag of indexedTags) {
+            if (matches.length >= maxSuggestions) break
+            if (tag._lower.startsWith(lower)) {
+                matches.push(tag)
             }
         }
-        setIsVisible(false)
-    }
+        
+        // 2단계: 부족하면 전체에서 includes 검색 (느리지만 fallback)
+        if (matches.length < maxSuggestions) {
+            for (const tag of TAGS_WITH_LOWER) {
+                if (matches.length >= maxSuggestions) break
+                if (!tag._lower.startsWith(lower) && tag._lower.includes(lower)) {
+                    matches.push(tag)
+                }
+            }
+        }
 
-    const insertTag = (tag: Tag) => {
+        if (matches.length > 0) {
+            setSuggestions(matches)
+            setSuggestionMode('tag')
+            setSelectedIndex(0)
+
+            const rect = el.getBoundingClientRect()
+            const caret = getCaretCoordinates(el, pos)
+
+            setCoords({
+                top: rect.top + window.scrollY + caret.top + 24,
+                left: rect.left + window.scrollX + caret.left
+            })
+            setIsVisible(true)
+        } else {
+            setIsVisible(false)
+        }
+    }, [maxSuggestions, wildcardFiles])
+
+    const insertSuggestion = (suggestion: SuggestionItem) => {
         if (!textareaRef.current) return
         const el = textareaRef.current
         const val = value
         const pos = el.selectionEnd || 0
 
-        const left = val.slice(0, pos)
-        const wordMatch = left.match(/[^,\n]*$/)
-        if (!wordMatch) return
+        if (suggestionMode === 'wildcard') {
+            // 와일드카드 삽입: <name> 형태로
+            const wildcardWord = getWildcardWord(val, pos)
+            if (wildcardWord === null) return
+            
+            // `<` 위치 찾기
+            const left = val.slice(0, pos)
+            const bracketPos = left.lastIndexOf('<')
+            if (bracketPos === -1) return
+            
+            const before = val.slice(0, bracketPos)
+            const after = val.slice(pos)
+            
+            // <name> 형태로 삽입 (닫는 괄호 포함)
+            const newValue = before + '<' + suggestion.value + '>' + after
 
-        const wordStart = wordMatch.index!
-        const before = val.slice(0, wordStart)
-        const after = val.slice(pos)
-        // Add space if needed
-        const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' ' : ''
+            onChange({ target: { value: newValue } })
+            setIsVisible(false)
 
-        const newValue = before + prefix + tag.value + ', ' + after
+            // 커서 위치 설정 (삽입된 와일드카드 뒤)
+            setTimeout(() => {
+                const newPos = bracketPos + suggestion.value.length + 2 // <name>
+                el.setSelectionRange(newPos, newPos)
+                el.focus()
+            }, 0)
+        } else {
+            // 일반 태그 삽입
+            const left = val.slice(0, pos)
+            const wordMatch = left.match(/[^,\n]*$/)
+            if (!wordMatch) return
 
-        // Update parent
-        onChange({ target: { value: newValue } })
+            const wordStart = wordMatch.index!
+            const before = val.slice(0, wordStart)
+            const after = val.slice(pos)
+            // Add space if needed
+            const prefix = (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) ? ' ' : ''
 
-        setIsVisible(false)
+            const newValue = before + prefix + suggestion.value + ', ' + after
 
-        // Reset focus and cursor
-        setTimeout(() => {
-            el.focus()
-            const newPos = wordStart + prefix.length + tag.value.length + 2 // +2 for ', '
-            el.setSelectionRange(newPos, newPos)
-            scrollToCaret()
-        }, 0)
+            onChange({ target: { value: newValue } })
+            setIsVisible(false)
+
+            // Reset focus and cursor
+            setTimeout(() => {
+                el.focus()
+                const newPos = wordStart + prefix.length + suggestion.value.length + 2 // +2 for ', '
+                el.setSelectionRange(newPos, newPos)
+                scrollToCaret()
+            }, 0)
+        }
     }
 
     // --- Scroll Sync Logic ---
@@ -153,7 +292,16 @@ export function AutocompleteTextarea({
 
     // --- Event Handlers ---
     const handleValueChange = (code: string) => {
-        onChange({ target: { value: code } })
+        // 내부 state 즉시 업데이트 (UI 반응성)
+        setInternalValue(code)
+        
+        // onChange를 100ms 디바운스 (Zustand 업데이트 지연으로 렉 방지)
+        if (onChangeTimerRef.current) {
+            clearTimeout(onChangeTimerRef.current)
+        }
+        onChangeTimerRef.current = setTimeout(() => {
+            onChange({ target: { value: code } })
+        }, 100)
 
         if (textareaRef.current) {
             checkAutocomplete(code, textareaRef.current)
@@ -180,7 +328,7 @@ export function AutocompleteTextarea({
                 e.preventDefault()
                 e.stopPropagation() // Prevent default newline
                 if (suggestions[selectedIndex]) {
-                    insertTag(suggestions[selectedIndex])
+                    insertSuggestion(suggestions[selectedIndex])
                 }
                 return
             } else if (e.key === 'Escape') {
@@ -191,6 +339,13 @@ export function AutocompleteTextarea({
     }
 
     // --- Effects ---
+    // 타이머 정리 (컴포넌트 언마운트 시)
+    useEffect(() => {
+        return () => {
+            if (onChangeTimerRef.current) clearTimeout(onChangeTimerRef.current)
+        }
+    }, [])
+
     // Scroll active suggestion into view
     useEffect(() => {
         if (!isVisible || !listRef.current) return
@@ -288,7 +443,7 @@ export function AutocompleteTextarea({
                 style={{ scrollBehavior: 'smooth' }} // Optional smooth scroll
             >
                 <Editor
-                    value={value}
+                    value={internalValue}
                     onValueChange={handleValueChange}
                     highlight={renderHighlights}
                     padding={12}
@@ -339,31 +494,38 @@ export function AutocompleteTextarea({
                     }}
                 >
                     <div className="p-1">
-                        {suggestions.map((tag, index) => (
+                        {suggestions.map((item, index) => (
                             <div
-                                key={tag.value + index}
+                                key={item.value + index}
                                 className={cn(
                                     "flex items-center justify-between px-3 py-2 text-sm rounded-md cursor-pointer select-none transition-colors",
                                     index === selectedIndex ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                                 )}
                                 onMouseDown={(e) => {
                                     e.preventDefault()
-                                    insertTag(tag)
+                                    insertSuggestion(item)
                                 }}
                             >
                                 <div className="flex flex-col overflow-hidden">
-                                    <span className="truncate font-semibold">{tag.label}</span>
+                                    <span className="truncate font-semibold">
+                                        {item.type === 'fragment' ? `<${item.label}>` : item.label}
+                                    </span>
                                     <div className="flex items-center gap-2 text-[10px] opacity-80">
                                         <span className={cn(
                                             "uppercase tracking-wider font-bold",
-                                            tag.type === 'artist' ? "text-yellow-300" :
-                                                tag.type === 'character' ? "text-green-300" :
-                                                    tag.type === 'copyright' ? "text-fuchsia-300" :
+                                            item.type === 'fragment' ? "text-green-300" :
+                                            item.type === 'artist' ? "text-yellow-300" :
+                                                item.type === 'character' ? "text-green-300" :
+                                                    item.type === 'copyright' ? "text-fuchsia-300" :
                                                         "text-blue-300"
                                         )}>
-                                            {tag.type}
+                                            {item.type}
                                         </span>
-                                        <span>{tag.count >= 1000 ? (tag.count / 1000).toFixed(1) + 'k' : tag.count}</span>
+                                        <span>
+                                            {item.type === 'fragment'
+                                                ? `${item.count} lines`
+                                                : (item.count ?? 0) >= 1000 ? ((item.count ?? 0) / 1000).toFixed(1) + 'k' : item.count}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

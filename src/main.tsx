@@ -3,6 +3,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './styles/globals.css'
 import './i18n'
+import { cleanupLargeData } from './lib/indexed-db'
+
+// Cleanup large wildcard data before app starts (migration fix)
+cleanupLargeData('nais2-wildcards', 100).then((cleaned) => {
+    if (cleaned) {
+        console.log('[Startup] Large wildcard data was cleaned up')
+    }
+})
 
 // Hide splash screen when React is ready
 const hideSplash = () => {
