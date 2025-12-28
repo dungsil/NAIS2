@@ -117,4 +117,11 @@ Your NovelAI token is stored locally only and never shared with third parties.
 
 ---
 
+## 🙏 Credits
+
+- [NAIA2.0](https://github.com/DNT-LAB/NAIA2.0) - Wildcard system reference
+- [SDStudio](https://github.com/sunho/SDStudio) - Scene mode reference
+
+---
+
 <p align="center">Made with ❤️ for the NovelAI community</p>

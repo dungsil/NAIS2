@@ -117,4 +117,11 @@ NovelAIトークンはローカルにのみ保存され、第三者と共有さ�
 
 ---
 
+## 🙏 クレジット
+
+- [NAIA2.0](https://github.com/DNT-LAB/NAIA2.0) - ワイルドカードシステム参考
+- [SDStudio](https://github.com/sunho/SDStudio) - シーンモード参考
+
+---
+
 <p align="center">NovelAIコミュニティのために ❤️ で作成</p>

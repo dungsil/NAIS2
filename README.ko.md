@@ -117,4 +117,11 @@ NovelAI 토큰은 로컬에만 저장되며, 제3자와 절대 공유되지 않�
 
 ---
 
+## 🙏 크레딧
+
+- [NAIA2.0](https://github.com/DNT-LAB/NAIA2.0) - 와일드카드 시스템 참고
+- [SDStudio](https://github.com/sunho/SDStudio) - 씬 모드 참고
+
+---
+
 <p align="center">NovelAI 커뮤니티를 위해 ❤️로 제작됨</p>
