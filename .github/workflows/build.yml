@@ -14,18 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-            target: 'aarch64-apple-darwin'
-            tagger_target: 'aarch64-apple-darwin'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-            target: 'x86_64-apple-darwin'
-            tagger_target: 'x86_64-apple-darwin'
-          - platform: 'windows-latest'
+          - platform: 'ubuntu-latest'
             args: ''
             target: ''
-            tagger_target: 'x86_64-pc-windows-msvc'
+            tagger_target: 'linux_x86_64'
 
     runs-on: ${{ matrix.platform }}
     
@@ -48,16 +40,7 @@ jobs:
         run: |
           pip install pyinstaller fastapi uvicorn pillow numpy onnxruntime pandas huggingface_hub rembg tqdm python-multipart
 
-      - name: Build Tagger Server (Windows)
-        if: matrix.platform == 'windows-latest'
-        working-directory: src-tauri/python
-        run: |
-          pyinstaller tagger_server.spec --clean --noconfirm
-          mkdir -p ../binaries
-          mv dist/tagger-server-x86_64-pc-windows-msvc.exe ../binaries/
-
-      - name: Build Tagger Server (macOS)
-        if: matrix.platform == 'macos-latest'
+      - name: Build Tagger Server
         working-directory: src-tauri/python
         run: |
           pyinstaller --onefile --name "tagger-server-${{ matrix.tagger_target }}" tagger_server.py --clean --noconfirm
